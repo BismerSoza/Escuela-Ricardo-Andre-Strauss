@@ -1,0 +1,129 @@
+@model List<ContactoViewModel>
+@{
+    ViewData["Title"] = "Mensajería";
+}
+
+<h3>Mensajería</h3>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">Contactos</div>
+            <div class="list-group list-group-flush lista-contactos" id="listaContactos">
+                @if (Model == null || !Model.Any())
+                {
+                    <p class="text-muted p-3 mb-0">No hay contactos disponibles.</p>
+                }
+                else
+                {
+                    foreach (var c in Model)
+                    {
+                        <button type="button" class="list-group-item list-group-item-action"
+                                data-id="@c.ConsecutivoUsuario" data-nombre="@c.Nombre">
+                            @c.Nombre
+                        </button>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header" id="tituloChat">Seleccione un contacto</div>
+            <div class="card-body">
+                <div class="contenedor-chat" id="contenedorChat"></div>
+                <form id="formMensaje" class="d-flex gap-2 mt-3" style="display:none;">
+                    <input type="text" class="form-control" id="contenidoMensaje" placeholder="Escriba su mensaje..." required />
+                    <button type="submit" class="btn btn-principal">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script>
+        const usuarioActual = parseInt('@ViewBag.ConsecutivoUsuario');
+        const tokenJwt = '@ViewBag.Token';
+        const urlApi = '@ViewBag.UrlApi';
+
+        let contactoActivo = null;
+
+        // ---- Conexión SignalR al Hub de la API para recibir mensajes en tiempo real ----
+        const conexion = new signalR.HubConnectionBuilder()
+            .withUrl(urlApi + 'chatHub', { accessTokenFactory: () => tokenJwt })
+            .withAutomaticReconnect()
+            .build();
+
+        conexion.on('MensajeRecibido', (mensaje) => {
+            if (contactoActivo && (mensaje.consecutivoEmisor == contactoActivo || mensaje.consecutivoReceptor == contactoActivo)) {
+                agregarMensajeAlDom(mensaje);
+            }
+        });
+
+        conexion.start().catch(err => console.error('No se pudo conectar al chat en tiempo real:', err));
+
+        document.querySelectorAll('#listaContactos button').forEach(boton => {
+            boton.addEventListener('click', () => seleccionarContacto(boton.dataset.id, boton.dataset.nombre, boton));
+        });
+
+        function seleccionarContacto(id, nombre, botonElemento) {
+            contactoActivo = id;
+            document.getElementById('tituloChat').textContent = 'Conversación con ' + nombre;
+            document.getElementById('formMensaje').style.display = 'flex';
+
+            document.querySelectorAll('.lista-contactos button').forEach(b => b.classList.remove('activo'));
+            botonElemento.classList.add('activo');
+
+            cargarMensajes();
+        }
+
+        async function cargarMensajes() {
+            if (!contactoActivo) return;
+            const respuesta = await fetchSeguro(`/Mensaje/ConsultarConversacion?contactoId=${contactoActivo}`);
+            if (!respuesta.ok) return;
+            const mensajes = await respuesta.json();
+
+            const contenedor = document.getElementById('contenedorChat');
+            contenedor.innerHTML = '';
+            mensajes.forEach(m => agregarMensajeAlDom(m, false));
+            contenedor.scrollTop = contenedor.scrollHeight;
+        }
+
+        function agregarMensajeAlDom(mensaje, autoScroll = true) {
+            const contenedor = document.getElementById('contenedorChat');
+            const emisor = mensaje.consecutivoEmisor ?? mensaje.ConsecutivoEmisor;
+            const contenido = mensaje.contenido ?? mensaje.Contenido;
+            const fecha = mensaje.fechaCreacion ?? mensaje.FechaCreacion ?? new Date().toISOString();
+
+            const div = document.createElement('div');
+            div.className = emisor == usuarioActual ? 'mensaje-propio' : 'mensaje-ajeno';
+            div.innerHTML = contenido + `<div class="small ${emisor == usuarioActual ? 'text-white-50' : 'text-muted'}">` +
+                new Date(fecha).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) + '</div>';
+
+            contenedor.appendChild(div);
+            if (autoScroll) contenedor.scrollTop = contenedor.scrollHeight;
+        }
+
+        document.getElementById('formMensaje').addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            const campo = document.getElementById('contenidoMensaje');
+            const contenido = campo.value.trim();
+            if (!contenido || !contactoActivo) return;
+
+            const respuesta = await fetchSeguro('/Mensaje/Enviar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ConsecutivoReceptor: parseInt(contactoActivo), Contenido: contenido })
+            });
+
+            if (respuesta.ok) {
+                campo.value = '';
+                cargarMensajes();
+            } else {
+                alert('No se pudo enviar el mensaje.');
+            }
+        });
+    </script>
+}

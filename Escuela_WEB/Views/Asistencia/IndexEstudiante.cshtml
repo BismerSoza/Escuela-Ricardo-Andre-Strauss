@@ -1,0 +1,82 @@
+@model System.Text.Json.JsonElement?
+@{
+    ViewData["Title"] = "Mi Asistencia";
+    var tieneDatos = Model.HasValue;
+    var resumen = tieneDatos ? Model.Value.GetProperty("resumen") : (System.Text.Json.JsonElement?)null;
+    var registros = tieneDatos ? Model.Value.GetProperty("registros") : (System.Text.Json.JsonElement?)null;
+}
+
+<h3><i class="bi bi-clipboard2-check me-2"></i>Mi Asistencia</h3>
+
+@if (!tieneDatos)
+{
+    <p class="text-muted mt-3">No fue posible cargar la información de asistencia.</p>
+}
+else
+{
+    <div class="row g-3 mt-1">
+        <div class="col-md-3 col-sm-6">
+            <div class="tarjeta-stat text-center">
+                <div class="text-muted small">Porcentaje de Asistencia</div>
+                <div class="fs-3 fw-bold text-success">@resumen!.Value.GetProperty("porcentajeAsistencia")%</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="tarjeta-stat text-center">
+                <div class="text-muted small">Presentes</div>
+                <div class="fs-3 fw-bold">@resumen!.Value.GetProperty("presentes")</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="tarjeta-stat text-center">
+                <div class="text-muted small">Ausentes</div>
+                <div class="fs-3 fw-bold text-danger">@resumen!.Value.GetProperty("ausentes")</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="tarjeta-stat text-center">
+                <div class="text-muted small">Tardías</div>
+                <div class="fs-3 fw-bold text-warning">@resumen!.Value.GetProperty("tardias")</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6 class="card-title">Detalle</h6>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr><th>Materia</th><th>Fecha</th><th>Estado</th><th>Observación</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (registros!.Value.GetArrayLength() == 0)
+                        {
+                            <tr><td colspan="4" class="text-muted">No hay registros aún.</td></tr>
+                        }
+                        else
+                        {
+                            foreach (var r in registros!.Value.EnumerateArray())
+                            {
+                                var estado = r.GetProperty("estado").GetString();
+                                var claseBadge = estado switch
+                                {
+                                    "Presente" => "badge-estado-presente",
+                                    "Ausente" => "badge-estado-ausente",
+                                    "Tardía" => "badge-estado-tardia",
+                                    _ => "badge-estado-justificada"
+                                };
+                                <tr>
+                                    <td>@r.GetProperty("materia").GetString()</td>
+                                    <td>@DateTime.Parse(r.GetProperty("fecha").GetString()!).ToString("dd/MM/yyyy")</td>
+                                    <td><span class="badge @claseBadge">@estado</span></td>
+                                    <td>@(r.GetProperty("observacion").ValueKind == System.Text.Json.JsonValueKind.String ? r.GetProperty("observacion").GetString() : "-")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

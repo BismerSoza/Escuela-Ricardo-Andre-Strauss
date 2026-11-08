@@ -1,0 +1,43 @@
+@model RegistrarAvisoViewModel
+@{
+    ViewData["Title"] = "Publicar aviso";
+}
+
+<h3>Publicar nuevo aviso</h3>
+
+<div class="card" style="max-width:600px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-controller="Aviso" asp-action="Publicar" method="post">
+            <div class="mb-3">
+                <label asp-for="Titulo" class="form-label"></label>
+                <input asp-for="Titulo" class="form-control" />
+                <span asp-validation-for="Titulo" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Contenido" class="form-label"></label>
+                <textarea asp-for="Contenido" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Contenido" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Prioridad" class="form-label"></label>
+                <select asp-for="Prioridad" class="form-select">
+                    <option value="General">General</option>
+                    <option value="Información">Información</option>
+                    <option value="Importante">Importante</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Seccion" class="form-label"></label>
+                <input asp-for="Seccion" class="form-control" placeholder="Ej: Sexto Grado" />
+            </div>
+            <button type="submit" class="btn btn-principal">Publicar</button>
+            <a asp-controller="Aviso" asp-action="Index" class="btn btn-link">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

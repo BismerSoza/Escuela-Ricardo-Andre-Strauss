@@ -1,0 +1,41 @@
+@{
+    var avisos = ViewBag.Avisos as List<AvisoViewModel> ?? new List<AvisoViewModel>();
+}
+<div class="panel h-100">
+    <div class="panel-head">
+        <h6><i class="bi bi-megaphone"></i>Avisos recientes</h6>
+        <span class="panel-tag">@avisos.Count</span>
+    </div>
+    <div class="panel-body p-0">
+        @if (!avisos.Any())
+        {
+            <div class="vacio">
+                <i class="bi bi-inbox"></i>
+                <div>No hay avisos publicados.</div>
+            </div>
+        }
+        else
+        {
+            <ul class="lista-avisos">
+                @foreach (var a in avisos)
+                {
+                    var claseBadge = a.Prioridad switch
+                    {
+                        "Importante" => "badge-importante",
+                        "Información" => "badge-informacion",
+                        _ => "badge-general"
+                    };
+                    <li>
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <span class="aviso-titulo">@a.Titulo</span>
+                            <span class="badge @claseBadge">@a.Prioridad</span>
+                        </div>
+                        <div class="aviso-texto">@a.Contenido</div>
+                        <div class="aviso-meta">@a.Autor · @a.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+    <div class="panel-foot"><a asp-controller="Aviso" asp-action="Index">Ver todos los avisos <i class="bi bi-arrow-right"></i></a></div>
+</div>

@@ -1,0 +1,42 @@
+@model List<string>
+@{
+    ViewData["Title"] = "Secciones";
+    var materias = ViewBag.Materias as List<MateriaViewModel>;
+}
+
+<h3><i class="bi bi-diagram-3 me-2"></i>Secciones registradas</h3>
+
+<div class="row g-3 mt-1">
+    @if (Model == null || !Model.Any())
+    {
+        <p class="text-muted">No hay secciones registradas aún.</p>
+    }
+    else
+    {
+        foreach (var seccion in Model)
+        {
+            var materiasDeSeccion = materias?.Where(m => m.Seccion == seccion).ToList() ?? new List<MateriaViewModel>();
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold"><i class="bi bi-people me-1"></i>@seccion</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">Asignaturas activas:</p>
+                        @if (!materiasDeSeccion.Any())
+                        {
+                            <p class="text-muted small">Sin asignaturas registradas.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var m in materiasDeSeccion)
+                                {
+                                    <li><i class="bi bi-journal-bookmark me-1"></i>@m.Nombre <span class="text-muted small">— @m.Docente</span></li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

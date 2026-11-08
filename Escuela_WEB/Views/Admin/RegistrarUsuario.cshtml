@@ -1,0 +1,48 @@
+@model RegistrarUsuarioAdminViewModel
+@{
+    ViewData["Title"] = "Nuevo usuario";
+}
+
+<h3>Registrar nuevo usuario</h3>
+
+<div class="card" style="max-width:550px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-controller="Admin" asp-action="RegistrarUsuario" method="post">
+            <div class="mb-3">
+                <label asp-for="Nombre" class="form-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CorreoElectronico" class="form-label"></label>
+                <input asp-for="CorreoElectronico" class="form-control" />
+                <span asp-validation-for="CorreoElectronico" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Contrasenna" class="form-label"></label>
+                <input asp-for="Contrasenna" type="password" class="form-control" />
+                <span asp-validation-for="Contrasenna" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Rol" class="form-label"></label>
+                <select asp-for="Rol" class="form-select">
+                    <option value="Estudiante">Estudiante</option>
+                    <option value="Docente">Docente</option>
+                    <option value="Director">Director</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Seccion" class="form-label"></label>
+                <input asp-for="Seccion" class="form-control" placeholder="Ej: Sexto Grado (no aplica para Director)" />
+            </div>
+            <button type="submit" class="btn btn-principal">Crear usuario</button>
+            <a asp-controller="Admin" asp-action="Usuarios" class="btn btn-link">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,59 @@
+@model List<HorarioViewModel>
+@{
+    ViewData["Title"] = "Horario de Clases";
+    var dias = (string[])ViewBag.Dias;
+    var puedeGestionar = (bool)ViewBag.PuedeGestionar;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Horario de Clases</h3>
+    @if (puedeGestionar)
+    {
+        <a asp-controller="Horario" asp-action="Registrar" class="btn btn-principal"><i class="bi bi-plus-lg"></i> Agregar bloque</a>
+    }
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <p class="text-muted mt-3">No hay bloques de horario registrados aún.</p>
+}
+else
+{
+    <div class="row g-3 mt-1">
+        @foreach (var dia in dias)
+        {
+            var bloques = Model.Where(h => h.DiaSemana == dia).OrderBy(h => h.HoraInicio).ToList();
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">@dia</div>
+                    <div class="list-group list-group-flush">
+                        @if (!bloques.Any())
+                        {
+                            <div class="list-group-item text-muted small">Sin clases</div>
+                        }
+                        else
+                        {
+                            foreach (var b in bloques)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>@b.Materia</strong>
+                                        <span class="text-muted small">@b.HoraInicio - @b.HoraFin</span>
+                                    </div>
+                                    <div class="text-muted small">@(b.Aula ?? "Sin aula asignada")</div>
+                                    @if (puedeGestionar)
+                                    {
+                                        <form asp-controller="Horario" asp-action="Eliminar" method="post" class="mt-1" onsubmit="return confirm('¿Eliminar este bloque?');">
+                                            <input type="hidden" name="id" value="@b.ConsecutivoHorario" />
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">Eliminar</button>
+                                        </form>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

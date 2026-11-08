@@ -1,0 +1,101 @@
+@model PanelAsistenciaViewModel
+@{
+    ViewData["Title"] = "Asistencia";
+    var puedeRegistrar = (bool)(ViewBag.PuedeRegistrar ?? false);
+}
+
+<h3><i class="bi bi-clipboard2-check me-2"></i>Control de Asistencia</h3>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-controller="Asistencia" asp-action="Index" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label">Asignatura</label>
+                <select name="materiaId" class="form-select" onchange="this.form.submit()">
+                    @foreach (var m in Model.Materias)
+                    {
+                        if (Model.MateriaSeleccionada == m.ConsecutivoMateria)
+                        {
+                            <option value="@m.ConsecutivoMateria" selected>@m.Nombre (@m.Seccion)</option>
+                        }
+                        else
+                        {
+                            <option value="@m.ConsecutivoMateria">@m.Nombre (@m.Seccion)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Fecha</label>
+                <input type="date" name="fecha" class="form-control" value="@Model.Fecha.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (!Model.Estudiantes.Any())
+        {
+            <p class="text-muted mb-0">No hay estudiantes matriculados en esta sección.</p>
+        }
+        else
+        {
+            <form asp-controller="Asistencia" asp-action="Registrar" method="post">
+                <input type="hidden" name="consecutivoMateria" value="@Model.MateriaSeleccionada" />
+                <input type="hidden" name="fecha" value="@Model.Fecha.ToString("yyyy-MM-dd")" />
+
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Estudiante</th>
+                                <th style="width:220px;">Estado</th>
+                                <th>Observación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var e in Model.Estudiantes)
+                            {
+                                <tr>
+                                    <td>
+                                        @e.Nombre
+                                        <input type="hidden" name="estudianteId" value="@e.ConsecutivoUsuario" />
+                                    </td>
+                                    <td>
+                                        <select name="estado" class="form-select form-select-sm" @(puedeRegistrar ? "" : "disabled")>
+                                            @foreach (var opcion in new[] { "Presente", "Ausente", "Tardía", "Justificada" })
+                                            {
+                                                if (e.Estado == opcion)
+                                                {
+                                                    <option value="@opcion" selected>@opcion</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@opcion">@opcion</option>
+                                                }
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="observacion" class="form-control form-control-sm"
+                                               value="@e.Observacion" placeholder="Opcional" @(puedeRegistrar ? "" : "disabled") />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (puedeRegistrar)
+                {
+                    <button type="submit" class="btn btn-principal">Guardar asistencia</button>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">Como Director, puede visualizar la asistencia; el registro diario lo realiza el docente de la asignatura.</p>
+                }
+            </form>
+        }
+    </div>
+</div>

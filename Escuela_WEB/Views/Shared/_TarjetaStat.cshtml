@@ -1,0 +1,12 @@
+@model TarjetaStatModel
+<div class="stat-card stat-@Model.Color">
+    <div>
+        <div class="stat-label">@Model.Etiqueta</div>
+        <div class="stat-value">@Model.Valor</div>
+        @if (!string.IsNullOrEmpty(Model.Pie))
+        {
+            <div class="stat-foot">@Model.Pie</div>
+        }
+    </div>
+    <i class="bi @Model.Icono stat-icon"></i>
+</div>

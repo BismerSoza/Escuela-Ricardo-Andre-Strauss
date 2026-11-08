@@ -1,0 +1,147 @@
+@{
+    var rol = Context.Session.GetString("Rol") ?? "";
+    var nombre = Context.Session.GetString("Nombre") ?? "Usuario";
+    var correo = Context.Session.GetString("Correo") ?? "";
+    var iniciales = string.Concat(nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => p[0])).ToUpper();
+    var controlador = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var accion = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    string Activo(string c) => string.Equals(controlador, c, StringComparison.OrdinalIgnoreCase) ? "activo" : "";
+    string ActivoAdmin(string a) => string.Equals(controlador, "Admin", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(accion, a, StringComparison.OrdinalIgnoreCase) ? "activo" : "";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MiniCampus | Escuela Ricardo André Strauss</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div class="app-shell">
+
+        <aside class="app-sidebar" id="sidebar">
+            <a class="brand" asp-controller="Home" asp-action="Principal">
+                <i class="bi bi-mortarboard-fill"></i>
+                <div>
+                    <span class="brand-title">MiniCampus</span>
+                    <span class="brand-sub">Escuela Ricardo André Strauss</span>
+                </div>
+            </a>
+
+            <nav class="side-nav">
+                <a class="side-link @(Activo("Home"))" asp-controller="Home" asp-action="Principal"><i class="bi bi-house-door"></i><span>Inicio</span></a>
+
+                <div class="side-title">Académico</div>
+                <a class="side-link @(Activo("Materia"))" asp-controller="Materia" asp-action="Index">
+                    <i class="bi bi-journal-bookmark"></i><span>@(rol == "Estudiante" ? "Mis asignaturas" : "Asignaturas")</span>
+                </a>
+                <a class="side-link @(Activo("Historial"))" asp-controller="Historial" asp-action="Index">
+                    <i class="bi bi-graph-up"></i><span>@(rol == "Estudiante" ? "Calificaciones" : "Historial académico")</span>
+                </a>
+                <a class="side-link @(Activo("Horario"))" asp-controller="Horario" asp-action="Index"><i class="bi bi-calendar3"></i><span>Horario de clases</span></a>
+                <a class="side-link @(Activo("Asistencia"))" asp-controller="Asistencia" asp-action="Index"><i class="bi bi-clipboard2-check"></i><span>Asistencia</span></a>
+
+                <div class="side-title">Comunicación</div>
+                <a class="side-link @(Activo("Aviso"))" asp-controller="Aviso" asp-action="Index"><i class="bi bi-megaphone"></i><span>Avisos</span></a>
+                <a class="side-link @(Activo("Mensaje"))" asp-controller="Mensaje" asp-action="Chat">
+                    <i class="bi bi-chat-dots"></i><span>Mensajería</span><span class="side-badge d-none" id="navMsgBadge">0</span>
+                </a>
+
+                @if (rol == "Director")
+                {
+                    <div class="side-title">Administración</div>
+                    <a class="side-link @(ActivoAdmin("Usuarios"))" asp-controller="Admin" asp-action="Usuarios"><i class="bi bi-people"></i><span>Usuarios</span></a>
+                    <a class="side-link @(ActivoAdmin("Secciones"))" asp-controller="Admin" asp-action="Secciones"><i class="bi bi-diagram-3"></i><span>Secciones</span></a>
+                    <a class="side-link @(ActivoAdmin("Errores"))" asp-controller="Admin" asp-action="Errores"><i class="bi bi-exclamation-triangle"></i><span>Errores del sistema</span></a>
+                }
+            </nav>
+
+            <div class="sidebar-foot">Cartago, Costa Rica · Curso lectivo 2026</div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <button class="icon-btn d-lg-none" id="btnToggleSidebar" aria-label="Abrir menú"><i class="bi bi-list"></i></button>
+                <div class="topbar-title d-none d-sm-block">@ViewData["Title"]</div>
+
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <!-- Campanita de notificaciones -->
+                    <div class="dropdown">
+                        <button class="icon-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notificaciones">
+                            <i class="bi bi-bell"></i>
+                            <span class="badge-notif d-none" id="campanaBadge">0</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end notif-menu">
+                            <div class="notif-head">
+                                <span>Notificaciones</span>
+                                <button type="button" id="btnMarcarLeidas">Marcar avisos como leídos</button>
+                            </div>
+                            <div class="notif-lista" id="notifLista">
+                                <div class="notif-vacio">Cargando...</div>
+                            </div>
+                            <div class="notif-foot"><a asp-controller="Aviso" asp-action="Index">Ver todos los avisos</a></div>
+                        </div>
+                    </div>
+
+                    <!-- Menú de usuario -->
+                    <div class="dropdown">
+                        <button class="user-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar">@iniciales</div>
+                            <div class="user-meta d-none d-md-block">
+                                <strong>@nombre</strong>
+                                <small>@rol</small>
+                            </div>
+                            <i class="bi bi-chevron-down small text-muted"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" style="min-width:250px;">
+                            <li class="px-3 py-2">
+                                <div class="fw-semibold">@nombre</div>
+                                <div class="small text-muted">@correo</div>
+                                <span class="badge bg-secondary mt-1">@rol</span>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Configuracion"><i class="bi bi-person-gear me-2"></i>Mi perfil y contraseña</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form asp-controller="Home" asp-action="CerrarSesion" method="post">
+                                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <div id="alertaGlobal"></div>
+                @if (TempData["Mensaje"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle me-1"></i>@TempData["Mensaje"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show"><i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @RenderBody()
+            </main>
+
+            <footer class="app-footer">© 2026 Escuela Ricardo André Strauss · MiniCampus — Plataforma académica</footer>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

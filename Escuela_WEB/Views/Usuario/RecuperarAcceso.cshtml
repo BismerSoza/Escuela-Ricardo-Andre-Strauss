@@ -1,0 +1,41 @@
+@model RecuperarAccesoViewModel
+@{
+    Layout = "_LayoutExterno";
+    ViewData["Title"] = "Recuperar acceso";
+}
+
+<div class="card tarjeta-login">
+    <div class="card-body p-4">
+        <h4 class="text-center mb-4">Recuperar acceso</h4>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        @if (ViewBag.Mensaje != null)
+        {
+            <div class="alert alert-success">
+                @ViewBag.Mensaje
+                @if (ViewBag.ContrasennaTemporal != null)
+                {
+                    <div>Contraseña temporal (solo demostración): <strong>@ViewBag.ContrasennaTemporal</strong></div>
+                }
+            </div>
+        }
+
+        <form asp-controller="Usuario" asp-action="RecuperarAcceso" method="post">
+            <div class="mb-3">
+                <label asp-for="CorreoElectronico" class="form-label"></label>
+                <input asp-for="CorreoElectronico" class="form-control" />
+                <span asp-validation-for="CorreoElectronico" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-principal w-100">Solicitar contraseña temporal</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a asp-controller="Home" asp-action="Index">Volver al inicio de sesión</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

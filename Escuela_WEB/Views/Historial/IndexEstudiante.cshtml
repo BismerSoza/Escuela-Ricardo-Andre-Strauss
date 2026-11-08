@@ -1,0 +1,51 @@
+@model List<HistorialViewModel>
+@{
+    ViewData["Title"] = "Mis Calificaciones";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-graph-up me-2"></i>Mis Calificaciones</h3>
+    <a asp-controller="Historial" asp-action="ExportarPdf" class="btn btn-outline-primary"><i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF</a>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Materia</th>
+                        <th>Periodo</th>
+                        <th>Nota</th>
+                        <th>Observación</th>
+                        <th>Docente</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-muted">No hay registros aún.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var r in Model)
+                        {
+                            <tr>
+                                <td>@r.Materia</td>
+                                <td>@r.Periodo</td>
+                                <td>
+                                    @{ var color = r.Nota >= 70 ? "bg-success" : "bg-danger"; }
+                                    <span class="badge @color">@(r.Nota?.ToString("0.##") ?? "-")</span>
+                                </td>
+                                <td>@(r.Observacion ?? "-")</td>
+                                <td>@r.Docente</td>
+                                <td>@r.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

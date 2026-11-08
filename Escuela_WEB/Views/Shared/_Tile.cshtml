@@ -1,0 +1,8 @@
+@model TileModel
+<a asp-controller="@Model.Controlador" asp-action="@Model.Accion" class="tile">
+    <div class="tile-icono"><i class="bi @Model.Icono"></i></div>
+    <div>
+        <strong>@Model.Titulo</strong>
+        <span>@Model.Descripcion</span>
+    </div>
+</a>

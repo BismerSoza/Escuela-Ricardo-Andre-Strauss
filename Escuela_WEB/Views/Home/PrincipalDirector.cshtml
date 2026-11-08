@@ -1,0 +1,95 @@
+@model DashboardDirectorViewModel
+@{
+    ViewData["Title"] = "Inicio";
+    var totalPersonas = Math.Max(Model.TotalDocentes + Model.TotalEstudiantes, 1);
+    var pctDocentes = (int)Math.Round(Model.TotalDocentes * 100.0 / totalPersonas);
+    var pctEstudiantes = 100 - pctDocentes;
+}
+
+@await Html.PartialAsync("_Hero", "Vista general de la institución: usuarios, asignaturas, rendimiento académico y comunicación.")
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Usuarios activos", Valor = Model.TotalUsuarios.ToString(), Icono = "bi-people", Color = "azul", Pie = "Dirección, docentes y estudiantes" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Docentes / estudiantes", Valor = Model.TotalDocentes + " / " + Model.TotalEstudiantes, Icono = "bi-person-badge", Color = "morado", Pie = "Comunidad educativa" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Promedio institucional", Valor = Model.PromedioInstitucional.ToString("0.#"), Icono = "bi-graph-up-arrow", Color = "verde", Pie = "Todas las secciones" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Asignaturas activas", Valor = Model.TotalMaterias.ToString(), Icono = "bi-journal-bookmark", Color = "ambar", Pie = Model.AvisosRecientes + " avisos en 30 días" })
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-8">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <h6><i class="bi bi-bar-chart-line"></i>Rendimiento por sección</h6>
+                <span class="panel-tag">Promedio sobre 100</span>
+            </div>
+            <div class="panel-body">
+                @if (Model.Secciones.Any())
+                {
+                    <div class="chart-box"><canvas id="grafico"></canvas></div>
+                }
+                else
+                {
+                    <div class="vacio"><i class="bi bi-bar-chart"></i><div>Aún no hay calificaciones registradas en el sistema.</div></div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="panel h-100">
+            <div class="panel-head"><h6><i class="bi bi-diagram-3"></i>Comunidad educativa</h6></div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1"><span>Docentes</span><strong>@Model.TotalDocentes</strong></div>
+                    <div class="progress" style="height:10px;"><div class="progress-bar bg-primary" style="width:@(pctDocentes)%"></div></div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1"><span>Estudiantes</span><strong>@Model.TotalEstudiantes</strong></div>
+                    <div class="progress" style="height:10px;"><div class="progress-bar bg-success" style="width:@(pctEstudiantes)%"></div></div>
+                </div>
+                <hr />
+                <div class="d-flex justify-content-between"><span class="text-muted">Avisos (últimos 30 días)</span><strong>@Model.AvisosRecientes</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span class="text-muted">Asignaturas activas</span><strong>@Model.TotalMaterias</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span class="text-muted">Secciones con notas</span><strong>@Model.Secciones.Count</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-5">
+        @await Html.PartialAsync("_AvisosRecientes")
+    </div>
+    <div class="col-xl-7">
+        <div class="panel h-100">
+            <div class="panel-head"><h6><i class="bi bi-lightning-charge"></i>Administración</h6></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Gestión de usuarios", Descripcion = "Cree cuentas, active o desactive accesos y cambie roles.", Icono = "bi-people", Controlador = "Admin", Accion = "Usuarios" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Secciones", Descripcion = "Consulte las secciones y las asignaturas de cada una.", Icono = "bi-diagram-3", Controlador = "Admin", Accion = "Secciones" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Asignaturas", Descripcion = "Cree asignaturas y asígnelas a cada docente.", Icono = "bi-journal-bookmark", Controlador = "Materia" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Calificaciones", Descripcion = "Consulte el historial de cualquier estudiante y expórtelo a PDF.", Icono = "bi-journal-check", Controlador = "Historial" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Publicar aviso", Descripcion = "Envíe comunicados a toda la institución o a una sección.", Icono = "bi-megaphone", Controlador = "Aviso", Accion = "Publicar" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Errores del sistema", Descripcion = "Revise la bitácora de errores técnicos registrados.", Icono = "bi-exclamation-triangle", Controlador = "Admin", Accion = "Errores" })</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        crearGraficoBarras('grafico',
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Secciones)),
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PromediosPorSeccion)),
+            '#1b365d');
+    </script>
+}

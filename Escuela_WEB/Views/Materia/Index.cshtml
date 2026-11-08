@@ -1,0 +1,49 @@
+@model List<MateriaViewModel>
+@{
+    ViewData["Title"] = "Asignaturas";
+    var rol = ViewBag.Rol as string;
+    var puedeGestionar = rol == "Director" || rol == "Docente";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-journal-bookmark me-2"></i>@(rol == "Estudiante" ? "Mis Asignaturas" : "Asignaturas")</h3>
+    @if (puedeGestionar)
+    {
+        <a asp-controller="Materia" asp-action="Registrar" class="btn btn-principal"><i class="bi bi-plus-lg"></i> Nueva asignatura</a>
+    }
+</div>
+
+<div class="row g-3 mt-1">
+    @if (Model == null || !Model.Any())
+    {
+        <p class="text-muted">No hay asignaturas registradas aún.</p>
+    }
+    else
+    {
+        foreach (var m in Model)
+        {
+            <div class="col-md-4 col-sm-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title">@m.Nombre</h5>
+                            @if (!m.Activa)
+                            {
+                                <span class="badge bg-secondary">Inactiva</span>
+                            }
+                        </div>
+                        <p class="text-muted mb-1"><i class="bi bi-diagram-3 me-1"></i>@m.Seccion</p>
+                        <p class="text-muted mb-3"><i class="bi bi-person me-1"></i>@m.Docente</p>
+                        @if (puedeGestionar)
+                        {
+                            <form asp-controller="Materia" asp-action="Eliminar" method="post" onsubmit="return confirm('¿Desea desactivar esta asignatura?');">
+                                <input type="hidden" name="id" value="@m.ConsecutivoMateria" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>

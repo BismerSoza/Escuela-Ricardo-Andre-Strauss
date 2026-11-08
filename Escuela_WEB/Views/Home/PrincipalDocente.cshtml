@@ -1,0 +1,76 @@
+@model DashboardDocenteViewModel
+@{
+    ViewData["Title"] = "Inicio";
+}
+
+@await Html.PartialAsync("_Hero", "Gestione sus asignaturas, registre calificaciones y asistencia, y manténgase en contacto con sus estudiantes.")
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Mis asignaturas", Valor = Model.TotalMaterias.ToString(), Icono = "bi-journal-bookmark", Color = "azul", Pie = "Asignaturas activas" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Estudiantes a cargo", Valor = Model.TotalEstudiantes.ToString(), Icono = "bi-people", Color = "morado", Pie = "En sus secciones" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Promedio del grupo", Valor = Model.PromedioGrupo.ToString("0.#"), Icono = "bi-graph-up-arrow", Color = "verde", Pie = "Todas sus asignaturas" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Avisos publicados", Valor = Model.AvisosPublicados.ToString(), Icono = "bi-megaphone", Color = "ambar", Pie = "Por usted" })
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-8">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <h6><i class="bi bi-bar-chart-line"></i>Promedio por asignatura</h6>
+                <span class="panel-tag">Nota sobre 100</span>
+            </div>
+            <div class="panel-body">
+                @if (Model.Materias.Any())
+                {
+                    <div class="chart-box"><canvas id="grafico"></canvas></div>
+                }
+                else
+                {
+                    <div class="vacio"><i class="bi bi-bar-chart"></i><div>Aún no hay calificaciones registradas.</div></div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        @await Html.PartialAsync("_ClasesHoy")
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-5">
+        @await Html.PartialAsync("_AvisosRecientes")
+    </div>
+    <div class="col-xl-7">
+        <div class="panel h-100">
+            <div class="panel-head"><h6><i class="bi bi-lightning-charge"></i>Accesos rápidos</h6></div>
+            <div class="panel-body">
+                <div class="row g-3">
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Registrar calificaciones", Descripcion = "Ingrese notas por estudiante o impórtelas desde un archivo CSV.", Icono = "bi-journal-check", Controlador = "Historial" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Control de asistencia", Descripcion = "Marque la asistencia del día por asignatura.", Icono = "bi-clipboard2-check", Controlador = "Asistencia" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Publicar un aviso", Descripcion = "Comunique información a su sección o a toda la escuela.", Icono = "bi-megaphone", Controlador = "Aviso", Accion = "Publicar" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Mensajería", Descripcion = "Converse con sus estudiantes y con la dirección.", Icono = "bi-chat-dots", Controlador = "Mensaje", Accion = "Chat" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Mis asignaturas", Descripcion = "Consulte y administre las asignaturas a su cargo.", Icono = "bi-journal-bookmark", Controlador = "Materia" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Horario de clases", Descripcion = "Revise o ajuste los bloques de su horario semanal.", Icono = "bi-calendar3", Controlador = "Horario" })</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        crearGraficoBarras('grafico',
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Materias)),
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PromediosPorMateria)),
+            '#1b365d');
+    </script>
+}

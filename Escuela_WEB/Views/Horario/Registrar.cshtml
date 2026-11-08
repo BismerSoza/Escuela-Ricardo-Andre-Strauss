@@ -1,0 +1,61 @@
+@model RegistrarHorarioViewModel
+@{
+    ViewData["Title"] = "Agregar bloque de horario";
+    var materias = ViewBag.Materias as List<MateriaViewModel>;
+    var dias = (string[])ViewBag.Dias;
+}
+
+<h3>Agregar bloque de horario</h3>
+
+<div class="card" style="max-width:550px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-controller="Horario" asp-action="Registrar" method="post">
+            <div class="mb-3">
+                <label asp-for="ConsecutivoMateria" class="form-label"></label>
+                <select asp-for="ConsecutivoMateria" class="form-select">
+                    <option value="">-- Seleccione una asignatura --</option>
+                    @if (materias != null)
+                    {
+                        foreach (var m in materias)
+                        {
+                            <option value="@m.ConsecutivoMateria">@m.Nombre (@m.Seccion)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="DiaSemana" class="form-label"></label>
+                <select asp-for="DiaSemana" class="form-select">
+                    @foreach (var d in dias)
+                    {
+                        <option value="@d">@d</option>
+                    }
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label asp-for="HoraInicio" class="form-label"></label>
+                    <input asp-for="HoraInicio" type="time" class="form-control" />
+                    <span asp-validation-for="HoraInicio" class="text-danger"></span>
+                </div>
+                <div class="col-6 mb-3">
+                    <label asp-for="HoraFin" class="form-label"></label>
+                    <input asp-for="HoraFin" type="time" class="form-control" />
+                    <span asp-validation-for="HoraFin" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Aula" class="form-label"></label>
+                <input asp-for="Aula" class="form-control" placeholder="Ej: Aula 3" />
+            </div>
+            <button type="submit" class="btn btn-principal">Guardar</button>
+            <a asp-controller="Horario" asp-action="Index" class="btn btn-link">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

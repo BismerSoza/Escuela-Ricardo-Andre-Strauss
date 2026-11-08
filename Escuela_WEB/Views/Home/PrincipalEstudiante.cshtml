@@ -1,0 +1,102 @@
+@model DashboardEstudianteViewModel
+@{
+    ViewData["Title"] = "Inicio";
+    var textoAsistencia = Model.PorcentajeAsistencia >= 90 ? "Excelente asistencia" : Model.PorcentajeAsistencia >= 75 ? "Asistencia regular" : "Requiere atención";
+}
+
+@await Html.PartialAsync("_Hero", "Aquí puede consultar sus calificaciones, su asistencia, su horario y los avisos de la escuela.")
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Mis asignaturas", Valor = Model.TotalAsignaturas.ToString(), Icono = "bi-journal-bookmark", Color = "azul", Pie = "Matriculadas este año" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Promedio general", Valor = Model.PromedioGeneral.ToString("0.#"), Icono = "bi-graph-up-arrow", Color = "verde", Pie = "Sobre 100 puntos" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Avisos nuevos", Valor = Model.AvisosNuevos.ToString(), Icono = "bi-megaphone", Color = "ambar", Pie = "Últimos 7 días" })
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Asistencia", Valor = Model.PorcentajeAsistencia.ToString("0.#") + "%", Icono = "bi-clipboard2-check", Color = "morado", Pie = textoAsistencia })
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-8">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <h6><i class="bi bi-bar-chart-line"></i>Resumen académico</h6>
+                <span class="panel-tag">Promedio por asignatura</span>
+            </div>
+            <div class="panel-body">
+                @if (Model.Materias.Any())
+                {
+                    <div class="chart-box"><canvas id="grafico"></canvas></div>
+                }
+                else
+                {
+                    <div class="vacio"><i class="bi bi-bar-chart"></i><div>Aún no hay calificaciones registradas.</div></div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        @await Html.PartialAsync("_ClasesHoy")
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-7">
+        <div class="panel h-100">
+            <div class="panel-head">
+                <h6><i class="bi bi-journal-check"></i>Últimas calificaciones</h6>
+                <a asp-controller="Historial" asp-action="ExportarPdf" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+            </div>
+            <div class="panel-body p-0">
+                @if (!Model.UltimasCalificaciones.Any())
+                {
+                    <div class="vacio"><i class="bi bi-inbox"></i><div>No hay calificaciones registradas.</div></div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead><tr><th>Asignatura</th><th>Periodo</th><th style="width:34%">Nota</th></tr></thead>
+                            <tbody>
+                                @foreach (var c in Model.UltimasCalificaciones)
+                                {
+                                    var nota = c.Nota ?? 0;
+                                    var color = nota >= 85 ? "bg-success" : nota >= 70 ? "bg-primary" : "bg-danger";
+                                    <tr>
+                                        <td class="fw-semibold">@c.Materia</td>
+                                        <td class="text-muted">@c.Periodo</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="progress flex-grow-1" style="height:8px;"><div class="progress-bar @color" style="width:@((int)nota)%"></div></div>
+                                                <strong>@(c.Nota?.ToString("0.#") ?? "-")</strong>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="panel-foot"><a asp-controller="Historial" asp-action="Index">Ver todas las calificaciones <i class="bi bi-arrow-right"></i></a></div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        @await Html.PartialAsync("_AvisosRecientes")
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        crearGraficoBarras('grafico',
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Materias)),
+            @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PromediosPorMateria)),
+            '#1b365d');
+    </script>
+}

@@ -1,0 +1,55 @@
+@model List<AvisoViewModel>
+@{
+    ViewData["Title"] = "Avisos";
+    var puedePublicar = (bool)(ViewBag.PuedePublicar ?? false);
+    var consecutivoUsuario = ViewBag.ConsecutivoUsuario as string;
+    var rol = ViewBag.Rol as string;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-megaphone me-2"></i>Avisos institucionales</h3>
+    @if (puedePublicar)
+    {
+        <a asp-controller="Aviso" asp-action="Publicar" class="btn btn-principal"><i class="bi bi-plus-lg"></i> Publicar aviso</a>
+    }
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <p class="text-muted mt-3">No hay avisos publicados aún.</p>
+}
+else
+{
+    <div class="mt-3">
+        @foreach (var a in Model)
+        {
+            var claseBadge = a.Prioridad switch
+            {
+                "Importante" => "badge-importante",
+                "Información" => "badge-informacion",
+                _ => "badge-general"
+            };
+            <div class="card mb-3">
+                <div class="card-body aviso-item">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <span class="badge @claseBadge mb-2">@a.Prioridad</span>
+                            <h5 class="mb-1">@a.Titulo</h5>
+                        </div>
+                        @if (puedePublicar && (rol == "Director" || a.ConsecutivoAutor.ToString() == consecutivoUsuario))
+                        {
+                            <form asp-controller="Aviso" asp-action="Eliminar" method="post" onsubmit="return confirm('¿Desea eliminar este aviso?');">
+                                <input type="hidden" name="id" value="@a.ConsecutivoAviso" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        }
+                    </div>
+                    <p class="mb-1">@a.Contenido</p>
+                    <small class="text-muted">
+                        Por @a.Autor · @(a.Seccion ?? "Toda la institución") · @a.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+}

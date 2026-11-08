@@ -1,0 +1,51 @@
+@model RegistroViewModel
+@{
+    Layout = "_LayoutExterno";
+    ViewData["Title"] = "Crear cuenta";
+}
+
+<div class="card tarjeta-login">
+    <div class="card-body p-4">
+        <h4 class="text-center mb-4">Crear cuenta</h4>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-controller="Usuario" asp-action="Registro" method="post">
+            <div class="mb-3">
+                <label asp-for="Nombre" class="form-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CorreoElectronico" class="form-label"></label>
+                <input asp-for="CorreoElectronico" class="form-control" />
+                <span asp-validation-for="CorreoElectronico" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Contrasenna" class="form-label"></label>
+                <input asp-for="Contrasenna" class="form-control" />
+                <span asp-validation-for="Contrasenna" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Rol" class="form-label"></label>
+                <select asp-for="Rol" class="form-select">
+                    <option value="Estudiante">Estudiante</option>
+                    <option value="Docente">Docente</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Seccion" class="form-label"></label>
+                <input asp-for="Seccion" class="form-control" placeholder="Ej: Sexto Grado" />
+            </div>
+            <button type="submit" class="btn btn-principal w-100">Registrarme</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a asp-controller="Home" asp-action="Index">Ya tengo cuenta, iniciar sesión</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

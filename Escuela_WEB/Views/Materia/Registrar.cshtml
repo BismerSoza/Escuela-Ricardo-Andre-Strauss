@@ -1,0 +1,48 @@
+@model RegistrarMateriaViewModel
+@{
+    ViewData["Title"] = "Nueva asignatura";
+    var rol = Context.Session.GetString("Rol");
+    var docentes = ViewBag.Docentes as List<UsuarioAdminViewModel>;
+}
+
+<h3>Registrar nueva asignatura</h3>
+
+<div class="card" style="max-width:550px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-controller="Materia" asp-action="Registrar" method="post">
+            <div class="mb-3">
+                <label asp-for="Nombre" class="form-label"></label>
+                <input asp-for="Nombre" class="form-control" placeholder="Ej: Matemática" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Seccion" class="form-label"></label>
+                <input asp-for="Seccion" class="form-control" placeholder="Ej: Sexto Grado" />
+                <span asp-validation-for="Seccion" class="text-danger"></span>
+            </div>
+
+            @if (rol == "Director" && docentes != null)
+            {
+                <div class="mb-3">
+                    <label asp-for="ConsecutivoDocente" class="form-label"></label>
+                    <select asp-for="ConsecutivoDocente" class="form-select">
+                        <option value="">-- Seleccione un docente --</option>
+                        @foreach (var d in docentes)
+                        {
+                            <option value="@d.ConsecutivoUsuario">@d.Nombre</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <button type="submit" class="btn btn-principal">Registrar</button>
+            <a asp-controller="Materia" asp-action="Index" class="btn btn-link">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

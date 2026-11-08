@@ -1,0 +1,35 @@
+@{
+    var clases = ViewBag.ClasesHoy as List<HorarioViewModel> ?? new List<HorarioViewModel>();
+    var dia = ViewBag.DiaHoy as string ?? "";
+}
+<div class="panel h-100">
+    <div class="panel-head">
+        <h6><i class="bi bi-clock-history"></i>Clases de hoy</h6>
+        <span class="panel-tag">@dia</span>
+    </div>
+    <div class="panel-body p-0">
+        @if (!clases.Any())
+        {
+            <div class="vacio">
+                <i class="bi bi-cup-hot"></i>
+                <div>No hay clases programadas para hoy.</div>
+            </div>
+        }
+        else
+        {
+            <ul class="lista-clases">
+                @foreach (var c in clases)
+                {
+                    <li>
+                        <div class="hora">@c.HoraInicio<small>@c.HoraFin</small></div>
+                        <div class="det">
+                            <strong>@c.Materia</strong>
+                            <span><i class="bi bi-geo-alt"></i> @(c.Aula ?? "Sin aula asignada")</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+    <div class="panel-foot"><a asp-controller="Horario" asp-action="Index">Ver horario completo <i class="bi bi-arrow-right"></i></a></div>
+</div>

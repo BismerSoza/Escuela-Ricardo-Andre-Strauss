@@ -1,0 +1,38 @@
+@model ConfiguracionViewModel
+@{
+    ViewData["Title"] = "Mi Perfil";
+}
+
+<h3>Configuración de mi perfil</h3>
+
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-controller="Usuario" asp-action="Configuracion" method="post">
+            <div class="mb-3">
+                <label asp-for="Nombre" class="form-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CorreoElectronico" class="form-label"></label>
+                <input asp-for="CorreoElectronico" class="form-control" disabled />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Seccion" class="form-label"></label>
+                <input asp-for="Seccion" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ContrasennaNueva" class="form-label"></label>
+                <input asp-for="ContrasennaNueva" class="form-control" placeholder="Dejar en blanco para no cambiar" />
+                <span asp-validation-for="ContrasennaNueva" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-principal">Guardar cambios</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

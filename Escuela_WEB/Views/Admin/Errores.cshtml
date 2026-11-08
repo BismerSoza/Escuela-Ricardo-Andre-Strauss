@@ -1,0 +1,34 @@
+@model List<RegistroErrorViewModel>
+@{
+    ViewData["Title"] = "Errores del sistema";
+}
+
+<h3><i class="bi bi-exclamation-triangle me-2"></i>Bitácora de errores del sistema</h3>
+<p class="text-muted">Errores no controlados capturados automáticamente por el middleware de la API.</p>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead><tr><th>Fecha</th><th>Ruta</th><th>Mensaje</th></tr></thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr><td colspan="3" class="text-muted">No se han registrado errores. ¡Todo funciona correctamente!</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var e in Model)
+                        {
+                            <tr>
+                                <td class="text-nowrap">@e.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><code>@e.Ruta</code></td>
+                                <td>@e.Mensaje</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,67 @@
+@model List<UsuarioAdminViewModel>
+@{
+    ViewData["Title"] = "Usuarios";
+    var filtro = ViewBag.FiltroRol as string;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-people me-2"></i>Gestión de Usuarios</h3>
+    <a asp-controller="Admin" asp-action="RegistrarUsuario" class="btn btn-principal"><i class="bi bi-plus-lg"></i> Nuevo usuario</a>
+</div>
+
+<div class="btn-group my-3">
+    <a asp-controller="Admin" asp-action="Usuarios" class="btn btn-sm @(filtro == null ? "btn-principal" : "btn-outline-secondary")">Todos</a>
+    <a asp-controller="Admin" asp-action="Usuarios" asp-route-rol="Director" class="btn btn-sm @(filtro == "Director" ? "btn-principal" : "btn-outline-secondary")">Directores</a>
+    <a asp-controller="Admin" asp-action="Usuarios" asp-route-rol="Docente" class="btn btn-sm @(filtro == "Docente" ? "btn-principal" : "btn-outline-secondary")">Docentes</a>
+    <a asp-controller="Admin" asp-action="Usuarios" asp-route-rol="Estudiante" class="btn btn-sm @(filtro == "Estudiante" ? "btn-principal" : "btn-outline-secondary")">Estudiantes</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Sección</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-muted">No hay usuarios registrados.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var u in Model)
+                        {
+                            <tr>
+                                <td>@u.Nombre</td>
+                                <td>@u.CorreoElectronico</td>
+                                <td><span class="badge bg-secondary">@u.Rol</span></td>
+                                <td>@(u.Seccion ?? "-")</td>
+                                <td>
+                                    @if (u.Activo)
+                                    {
+                                        <span class="badge bg-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <form asp-controller="Admin" asp-action="CambiarEstado" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@u.ConsecutivoUsuario" />
+                                        <input type="hidden" name="activo" value="@(!u.Activo)" />
+                                        <button type="submit" class="btn btn-sm @(u.Activo ? "btn-outline-danger" : "btn-outline-success")"
+                                                onclick="return confirm('¿Confirma @(u.Activo ? "desactivar" : "activar") a este usuario?');">
+                                            @(u.Activo ? "Desactivar" : "Activar")
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
