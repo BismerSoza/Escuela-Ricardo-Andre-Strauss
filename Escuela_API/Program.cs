@@ -1,4 +1,6 @@
+using Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using Escuela_API.Hubs;
 using Escuela_API.Middleware;
@@ -47,6 +49,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // por lo que el token se recibe como query string ("access_token").
         options.Events = new JwtBearerEvents
         {
+            // En CADA petición se comprueba que la cuenta siga activa y que su rol/sección
+            // no hayan cambiado desde que se emitió el token. Así, cuando el Director
+            // desactiva a alguien (o le cambia el rol), pierde el acceso de inmediato
+            // en lugar de seguir usando su token hasta que expire.
+            OnTokenValidated = async context =>
+            {
+                var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                var principal = context.Principal;
+
+                if (!int.TryParse(principal?.FindFirst("consecutivo")?.Value, out var id))
+                {
+                    context.Fail("Token inválido.");
+                    return;
+                }
+
+                using var conexion = new SqlConnection(config["ConnectionStrings:DefaultConnection"]);
+                var actual = await conexion.QueryFirstOrDefaultAsync<EstadoCuenta>(
+                    "SELECT Rol, Seccion, Activo FROM Usuario WHERE ConsecutivoUsuario = @Id", new { Id = id });
+
+                var rolToken = principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                var seccionToken = principal?.FindFirst("seccion")?.Value ?? string.Empty;
+
+                if (actual == null || !actual.Activo || actual.Rol != rolToken || (actual.Seccion ?? string.Empty) != seccionToken)
+                {
+                    context.Fail("Sesión no válida.");
+                }
+            },
+
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];
@@ -86,3 +116,11 @@ app.MapControllers();
 app.MapHub<ChatHub>("/chatHub");
 
 app.Run();
+
+// Fila mínima para validar el token contra la base de datos.
+internal class EstadoCuenta
+{
+    public string Rol { get; set; } = string.Empty;
+    public string? Seccion { get; set; }
+    public bool Activo { get; set; }
+}

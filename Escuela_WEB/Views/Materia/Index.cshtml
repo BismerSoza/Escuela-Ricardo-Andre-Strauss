@@ -36,10 +36,20 @@
                         <p class="text-muted mb-3"><i class="bi bi-person me-1"></i>@m.Docente</p>
                         @if (puedeGestionar)
                         {
-                            <form asp-controller="Materia" asp-action="Eliminar" method="post" onsubmit="return confirm('¿Desea desactivar esta asignatura?');">
-                                <input type="hidden" name="id" value="@m.ConsecutivoMateria" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
-                            </form>
+                            if (m.Activa)
+                            {
+                                <form asp-controller="Materia" asp-action="Eliminar" method="post" onsubmit="return confirm('¿Desea desactivar esta asignatura?');">
+                                    <input type="hidden" name="id" value="@m.ConsecutivoMateria" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-controller="Materia" asp-action="Reactivar" method="post">
+                                    <input type="hidden" name="id" value="@m.ConsecutivoMateria" />
+                                    <button type="submit" class="btn btn-sm btn-success">Reactivar</button>
+                                </form>
+                            }
                         }
                     </div>
                 </div>

@@ -15,20 +15,22 @@ namespace Escuela_API.Controllers
         private SqlConnection Conexion => new(_config["ConnectionStrings:DefaultConnection"]);
 
         // GET api/Estudiante/ConsultarEstudiantesAPI
-        // Docente -> solo los de su seccion a cargo. Director -> todos los estudiantes de la institucion.
+        // Docente  -> estudiantes activos de las secciones donde dicta alguna asignatura.
+        // Director -> todos los estudiantes activos de la institución.
         [HttpGet("ConsultarEstudiantesAPI")]
         public IActionResult ConsultarEstudiantesAPI()
         {
             using var context = Conexion;
-            var rol = _utiles.ObtenerRolToken();
-            var seccion = rol == "Director" ? null : _utiles.ObtenerSeccionToken();
+            var esDirector = _utiles.ObtenerRolToken() == "Director";
 
             var estudiantes = context.Query<ContactoResponseModel>(@"
                 SELECT ConsecutivoUsuario, Nombre, CorreoElectronico, Rol, Seccion
                 FROM Usuario
-                WHERE Rol = 'Estudiante' AND (Seccion = @Seccion OR @Seccion IS NULL)
-                ORDER BY Nombre",
-                new { Seccion = seccion });
+                WHERE Rol = 'Estudiante' AND Activo = 1
+                  AND (@EsDirector = 1 OR Seccion IN (
+                        SELECT Seccion FROM Materia WHERE ConsecutivoDocente = @Docente AND Activa = 1))
+                ORDER BY Seccion, Nombre",
+                new { EsDirector = esDirector ? 1 : 0, Docente = _utiles.ObtenerConsecutivoToken() });
 
             return Ok(estudiantes);
         }

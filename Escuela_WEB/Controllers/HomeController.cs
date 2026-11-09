@@ -10,12 +10,18 @@ namespace Escuela_WEB.Controllers
     {
         // GET /  -> pantalla de inicio de sesion
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(int expirada = 0)
         {
             if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Token")))
             {
                 return RedirectToAction("Principal");
             }
+
+            if (expirada == 1)
+            {
+                ViewBag.Aviso = "Su sesión terminó o su cuenta ya no tiene acceso. Inicie sesión nuevamente.";
+            }
+
             return View(new InicioSesionViewModel());
         }
 
@@ -24,6 +30,9 @@ namespace Escuela_WEB.Controllers
         public async Task<IActionResult> Index(InicioSesionViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
+
+            // Sin token previo: un 401 del login es "credenciales incorrectas", no "sesión vencida".
+            HttpContext.Session.Clear();
 
             var (exito, datos, error) = await _api.PostAsync<JsonElement>("api/Usuario/IniciarSesionAPI", new
             {

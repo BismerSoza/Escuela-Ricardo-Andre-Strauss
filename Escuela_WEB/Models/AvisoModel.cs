@@ -27,7 +27,7 @@ namespace Escuela_WEB.Models
         [Display(Name = "Prioridad")]
         public string Prioridad { get; set; } = "General";
 
-        [Display(Name = "Sección (vacío = toda la institución)")]
+        [Display(Name = "Dirigido a")]
         public string? Seccion { get; set; }
     }
 }

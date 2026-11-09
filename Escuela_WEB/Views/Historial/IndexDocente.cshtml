@@ -27,14 +27,7 @@
             <select name="estudianteId" class="form-select" onchange="document.getElementById('formSeleccion').submit();">
                 @foreach (var e in Model.Estudiantes)
                 {
-                    if (Model.EstudianteSeleccionado == e.ConsecutivoUsuario)
-                    {
-                        <option value="@e.ConsecutivoUsuario" selected>@e.Nombre (@(e.Seccion ?? "sin sección"))</option>
-                    }
-                    else
-                    {
-                        <option value="@e.ConsecutivoUsuario">@e.Nombre (@(e.Seccion ?? "sin sección"))</option>
-                    }
+                    <option value="@e.ConsecutivoUsuario" selected="@(Model.EstudianteSeleccionado == e.ConsecutivoUsuario)">@e.Nombre (@(e.Seccion ?? "sin sección"))</option>
                 }
             </select>
         </form>
@@ -46,32 +39,43 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Registrar nueva entrada</h5>
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            <form asp-controller="Historial" asp-action="Registrar" method="post" class="row g-2">
-                <input type="hidden" asp-for="NuevoRegistro.ConsecutivoEstudiante" value="@Model.EstudianteSeleccionado" />
-                <div class="col-md-4">
-                    <select name="Materia" class="form-select" required>
-                        <option value="">-- Materia --</option>
-                        @foreach (var m in Model.MateriasDisponibles)
-                        {
-                            <option value="@m.Nombre">@m.Nombre</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <input asp-for="NuevoRegistro.Periodo" class="form-control" placeholder="Periodo (ej: I Trimestre 2026)" />
-                </div>
-                <div class="col-md-2">
-                    <input asp-for="NuevoRegistro.Nota" class="form-control" type="number" step="0.1" min="0" max="100" placeholder="Nota" />
-                </div>
-                <div class="col-md-2 d-grid">
-                    <button type="submit" class="btn btn-principal">Agregar</button>
-                </div>
-                <div class="col-12">
-                    <input asp-for="NuevoRegistro.Observacion" class="form-control" placeholder="Observación (opcional)" />
-                </div>
-            </form>
+            @if (Model.EstudianteSeleccionado == null)
+            {
+                <p class="text-muted mb-0">No hay estudiantes en las secciones donde usted dicta clases.</p>
+            }
+            else if (!Model.MateriasDisponibles.Any())
+            {
+                <p class="text-muted mb-0">No tiene asignaturas activas en la sección de este estudiante.</p>
+            }
+            else
+            {
+                @* Los nombres de los campos coinciden con RegistrarHistorialViewModel (sin prefijo). *@
+                <form asp-controller="Historial" asp-action="Registrar" method="post" class="row g-2">
+                    <input type="hidden" name="ConsecutivoEstudiante" value="@Model.EstudianteSeleccionado" />
+                    <div class="col-md-4">
+                        <select name="ConsecutivoMateria" class="form-select" required>
+                            <option value="">-- Asignatura --</option>
+                            @foreach (var m in Model.MateriasDisponibles)
+                            {
+                                <option value="@m.ConsecutivoMateria">@m.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input name="Periodo" class="form-control" placeholder="Periodo (ej: I Trimestre 2026)" maxlength="50" required />
+                    </div>
+                    <div class="col-md-2">
+                        <input name="Nota" class="form-control" type="number" step="0.1" min="0" max="100" placeholder="Nota" />
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-principal">Agregar</button>
+                    </div>
+                    <div class="col-12">
+                        <input name="Observacion" class="form-control" placeholder="Observación (opcional)" maxlength="400" />
+                    </div>
+                </form>
+            }
         </div>
     </div>
 }
@@ -120,6 +124,3 @@ else
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

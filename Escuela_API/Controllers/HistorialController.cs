@@ -21,7 +21,8 @@ namespace Escuela_API.Controllers
         private SqlConnection Conexion => new(_config["ConnectionStrings:DefaultConnection"]);
 
         // GET api/Historial/ConsultarHistorialAPI
-        // Estudiante -> su propio historial. Docente/Director -> requieren ?estudianteId=
+        // Estudiante -> su propio historial. Director -> cualquiera.
+        // Docente -> solo estudiantes de las secciones donde dicta clases (requiere ?estudianteId=).
         [HttpGet("ConsultarHistorialAPI")]
         public IActionResult ConsultarHistorialAPI([FromQuery] int? estudianteId)
         {
@@ -38,7 +39,17 @@ namespace Escuela_API.Controllers
                 return BadRequest("Debe indicar el parámetro estudianteId.");
             }
 
+            if (!PuedeVerEstudiante(context, rol, estudianteId.Value)) return Forbid();
+
             return Ok(ObtenerHistorialEstudiante(context, estudianteId.Value));
+        }
+
+        private bool PuedeVerEstudiante(SqlConnection context, string rol, int estudianteId)
+        {
+            if (rol == "Director") return true;
+            if (rol == "Estudiante") return estudianteId == _utiles.ObtenerConsecutivoToken();
+
+            return AccesoHelper.DocenteTieneEstudiante(context, _utiles.ObtenerConsecutivoToken(), estudianteId);
         }
 
         private static IEnumerable<HistorialResponseModel> ObtenerHistorialEstudiante(SqlConnection context, int estudianteId)
@@ -54,17 +65,50 @@ namespace Escuela_API.Controllers
         }
 
         // POST api/Historial/RegistrarHistorialAPI  (solo Docente)
+        // La asignatura debe ser del docente y el estudiante debe estar en la sección de esa asignatura.
         [Authorize(Roles = "Docente")]
         [HttpPost("RegistrarHistorialAPI")]
         public IActionResult RegistrarHistorialAPI(RegistrarHistorialRequestModel model)
         {
-            if (model.ConsecutivoEstudiante == 0 || string.IsNullOrWhiteSpace(model.Materia)
-                || string.IsNullOrWhiteSpace(model.Periodo))
+            var periodo = ValidacionHelper.LimpiarNombre(model.Periodo);
+
+            if (model.ConsecutivoEstudiante == 0 || model.ConsecutivoMateria == null || periodo.Length == 0)
             {
-                return BadRequest("Estudiante, materia y periodo son obligatorios.");
+                return BadRequest("Estudiante, asignatura y periodo son obligatorios.");
+            }
+
+            if (periodo.Length > 50) return BadRequest("El periodo es demasiado largo (máximo 50 caracteres).");
+
+            if (model.Nota != null && (model.Nota < 0 || model.Nota > 100))
+            {
+                return BadRequest("La nota debe estar entre 0 y 100.");
+            }
+
+            var observacion = string.IsNullOrWhiteSpace(model.Observacion) ? null : model.Observacion.Trim();
+            if (observacion != null && observacion.Length > 400)
+            {
+                return BadRequest("La observación no puede superar 400 caracteres.");
             }
 
             using var context = Conexion;
+            var docenteId = _utiles.ObtenerConsecutivoToken();
+
+            var materia = context.QueryFirstOrDefault<MateriaBasica>(@"
+                SELECT ConsecutivoMateria, Nombre, Seccion, ConsecutivoDocente, Activa
+                FROM Materia
+                WHERE ConsecutivoMateria = @Id AND ConsecutivoDocente = @Docente AND Activa = 1",
+                new { Id = model.ConsecutivoMateria.Value, Docente = docenteId });
+
+            if (materia == null) return BadRequest("La asignatura no existe o no está a su cargo.");
+
+            var seccionEstudiante = context.QueryFirstOrDefault<string?>(
+                "SELECT Seccion FROM Usuario WHERE ConsecutivoUsuario = @Id AND Rol = 'Estudiante' AND Activo = 1",
+                new { Id = model.ConsecutivoEstudiante });
+
+            if (seccionEstudiante == null || seccionEstudiante != materia.Seccion)
+            {
+                return BadRequest("El estudiante no pertenece a la sección de esa asignatura.");
+            }
 
             var nuevoId = context.QueryFirstOrDefault<int>(@"
                 INSERT INTO HistorialAcademico
@@ -74,12 +118,12 @@ namespace Escuela_API.Controllers
                 new
                 {
                     Estudiante = model.ConsecutivoEstudiante,
-                    Docente = _utiles.ObtenerConsecutivoToken(),
-                    model.ConsecutivoMateria,
-                    model.Materia,
-                    model.Periodo,
+                    Docente = docenteId,
+                    ConsecutivoMateria = materia.ConsecutivoMateria,
+                    Materia = materia.Nombre,
+                    Periodo = periodo,
                     model.Nota,
-                    model.Observacion
+                    Observacion = observacion
                 });
 
             return Ok(new { Mensaje = "Registro académico agregado.", ConsecutivoHistorial = nuevoId });
@@ -87,6 +131,7 @@ namespace Escuela_API.Controllers
 
         // POST api/Historial/ImportarCsvAPI  (Docente sube un archivo CSV con calificaciones masivas)
         // Columnas esperadas: CorreoEstudiante,Materia,Periodo,Nota,Observacion
+        // Acepta separador coma, punto y coma o tabulador (Excel en español usa ";").
         [Authorize(Roles = "Docente")]
         [HttpPost("ImportarCsvAPI")]
         public async Task<IActionResult> ImportarCsvAPI(IFormFile archivo)
@@ -96,59 +141,133 @@ namespace Escuela_API.Controllers
                 return BadRequest("Debe adjuntar un archivo CSV.");
             }
 
+            if (archivo.Length > 2 * 1024 * 1024)
+            {
+                return BadRequest("El archivo supera el máximo permitido de 2 MB.");
+            }
+
             var resultado = new ImportarCalificacionesResultModel();
             using var context = Conexion;
             var docenteId = _utiles.ObtenerConsecutivoToken();
+
+            // Solo se aceptan asignaturas ACTIVAS del propio docente.
+            var materiasDocente = context.Query<MateriaBasica>(@"
+                SELECT ConsecutivoMateria, Nombre, Seccion, ConsecutivoDocente, Activa
+                FROM Materia WHERE ConsecutivoDocente = @Id AND Activa = 1",
+                new { Id = docenteId }).ToList();
 
             using var lector = new StreamReader(archivo.OpenReadStream());
             using var csv = new CsvReader(lector, new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 HeaderValidated = null,
-                MissingFieldFound = null
+                MissingFieldFound = null,
+                DetectDelimiter = true,
+                DetectDelimiterValues = new[] { ",", ";", "\t" }
             });
 
-            csv.Read();
-            csv.ReadHeader();
+            if (!await csv.ReadAsync() || !csv.ReadHeader() || csv.HeaderRecord == null)
+            {
+                return BadRequest("El archivo está vacío o no tiene encabezado.");
+            }
 
-            while (csv.Read())
+            var faltantes = new[] { "CorreoEstudiante", "Materia", "Periodo", "Nota" }
+                .Where(c => !csv.HeaderRecord.Any(h => string.Equals(h?.Trim(), c, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (faltantes.Count > 0)
+            {
+                return BadRequest($"Faltan columnas en el encabezado: {string.Join(", ", faltantes)}.");
+            }
+
+            while (await csv.ReadAsync())
             {
                 resultado.FilasProcesadas++;
+                var fila = resultado.FilasProcesadas;
+
                 try
                 {
                     var correo = csv.GetField("CorreoEstudiante")?.Trim();
-                    var materia = csv.GetField("Materia")?.Trim();
+                    var nombreMateria = csv.GetField("Materia")?.Trim();
                     var periodo = csv.GetField("Periodo")?.Trim();
                     var notaTexto = csv.GetField("Nota")?.Trim();
                     var observacion = csv.GetField("Observacion")?.Trim();
 
-                    if (string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(materia) || string.IsNullOrWhiteSpace(periodo))
+                    if (string.IsNullOrWhiteSpace(correo) || string.IsNullOrWhiteSpace(nombreMateria) || string.IsNullOrWhiteSpace(periodo))
                     {
-                        resultado.Errores.Add($"Fila {resultado.FilasProcesadas}: correo, materia y periodo son obligatorios.");
+                        resultado.Errores.Add($"Fila {fila}: correo, materia y periodo son obligatorios.");
                         continue;
                     }
 
-                    var estudianteId = context.QueryFirstOrDefault<int?>(
-                        "SELECT ConsecutivoUsuario FROM Usuario WHERE CorreoElectronico = @Correo AND Rol = 'Estudiante'",
+                    if (periodo.Length > 50)
+                    {
+                        resultado.Errores.Add($"Fila {fila}: el periodo supera 50 caracteres.");
+                        continue;
+                    }
+
+                    var estudiante = context.QueryFirstOrDefault<EstudianteCsv>(
+                        "SELECT ConsecutivoUsuario AS Id, Seccion FROM Usuario WHERE CorreoElectronico = @Correo AND Rol = 'Estudiante' AND Activo = 1",
                         new { Correo = correo });
 
-                    if (estudianteId == null)
+                    if (estudiante == null)
                     {
-                        resultado.Errores.Add($"Fila {resultado.FilasProcesadas}: no existe un estudiante con el correo '{correo}'.");
+                        resultado.Errores.Add($"Fila {fila}: no existe un estudiante activo con el correo '{correo}'.");
                         continue;
                     }
 
-                    decimal? nota = decimal.TryParse(notaTexto, NumberStyles.Any, CultureInfo.InvariantCulture, out var n) ? n : null;
+                    // La asignatura se identifica por nombre + la sección del estudiante.
+                    var materia = materiasDocente.FirstOrDefault(m =>
+                        string.Equals(m.Nombre, nombreMateria, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(m.Seccion, estudiante.Seccion, StringComparison.OrdinalIgnoreCase));
+
+                    if (materia == null)
+                    {
+                        resultado.Errores.Add($"Fila {fila}: usted no dicta '{nombreMateria}' en la sección de {correo}.");
+                        continue;
+                    }
+
+                    decimal? nota = null;
+                    if (!string.IsNullOrWhiteSpace(notaTexto))
+                    {
+                        if (!decimal.TryParse(notaTexto.Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var n))
+                        {
+                            resultado.Errores.Add($"Fila {fila}: la nota '{notaTexto}' no es un número válido.");
+                            continue;
+                        }
+
+                        if (n < 0 || n > 100)
+                        {
+                            resultado.Errores.Add($"Fila {fila}: la nota debe estar entre 0 y 100.");
+                            continue;
+                        }
+
+                        nota = n;
+                    }
+
+                    if (!string.IsNullOrEmpty(observacion) && observacion.Length > 400)
+                    {
+                        resultado.Errores.Add($"Fila {fila}: la observación supera 400 caracteres.");
+                        continue;
+                    }
 
                     context.Execute(@"
-                        INSERT INTO HistorialAcademico (ConsecutivoEstudiante, ConsecutivoDocente, Materia, Periodo, Nota, Observacion)
-                        VALUES (@Estudiante, @Docente, @Materia, @Periodo, @Nota, @Observacion)",
-                        new { Estudiante = estudianteId, Docente = docenteId, Materia = materia, Periodo = periodo, Nota = nota, Observacion = observacion });
+                        INSERT INTO HistorialAcademico (ConsecutivoEstudiante, ConsecutivoDocente, ConsecutivoMateria, Materia, Periodo, Nota, Observacion)
+                        VALUES (@Estudiante, @Docente, @ConsecutivoMateria, @Materia, @Periodo, @Nota, @Observacion)",
+                        new
+                        {
+                            Estudiante = estudiante.Id,
+                            Docente = docenteId,
+                            materia.ConsecutivoMateria,
+                            Materia = materia.Nombre,
+                            Periodo = periodo,
+                            Nota = nota,
+                            Observacion = string.IsNullOrEmpty(observacion) ? null : observacion
+                        });
 
                     resultado.FilasInsertadas++;
                 }
                 catch (Exception ex)
                 {
-                    resultado.Errores.Add($"Fila {resultado.FilasProcesadas}: {ex.Message}");
+                    resultado.Errores.Add($"Fila {fila}: {ex.Message}");
                 }
             }
 
@@ -164,6 +283,8 @@ namespace Escuela_API.Controllers
             var idConsultado = rol == "Estudiante" ? _utiles.ObtenerConsecutivoToken() : estudianteId;
 
             if (idConsultado == null) return BadRequest("Debe indicar el parámetro estudianteId.");
+
+            if (!PuedeVerEstudiante(context, rol, idConsultado.Value)) return Forbid();
 
             var estudiante = context.QueryFirstOrDefault(
                 "SELECT Nombre, Seccion FROM Usuario WHERE ConsecutivoUsuario = @Id", new { Id = idConsultado });
@@ -190,7 +311,7 @@ namespace Escuela_API.Controllers
                     pagina.Content().PaddingVertical(15).Column(columna =>
                     {
                         columna.Item().Text($"Estudiante: {estudiante.Nombre}").Bold();
-                        columna.Item().Text($"Sección: {estudiante.Seccion}");
+                        columna.Item().Text($"Sección: {estudiante.Seccion ?? "-"}");
                         columna.Item().Text($"Fecha de emisión: {DateTime.Now:dd/MM/yyyy HH:mm}");
                         columna.Item().PaddingTop(10);
 
@@ -241,6 +362,12 @@ namespace Escuela_API.Controllers
 
             var nombreArchivo = $"Calificaciones_{estudiante.Nombre.ToString().Replace(" ", "_")}.pdf";
             return File(documentoPdf, "application/pdf", nombreArchivo);
+        }
+
+        private class EstudianteCsv
+        {
+            public int Id { get; set; }
+            public string? Seccion { get; set; }
         }
     }
 }

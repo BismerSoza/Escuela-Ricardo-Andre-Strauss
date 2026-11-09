@@ -1,51 +1,92 @@
 @model RegistroViewModel
 @{
-    Layout = "_LayoutExterno";
+    Layout = "_LayoutLogin";
     ViewData["Title"] = "Crear cuenta";
+    var secciones = ViewBag.Secciones as List<string> ?? new List<string>();
 }
 
-<div class="card tarjeta-login">
-    <div class="card-body p-4">
-        <h4 class="text-center mb-4">Crear cuenta</h4>
+<div class="login-card ancho">
+    <h2>Crear cuenta</h2>
+    <p class="sub">Primero cuéntenos quién es usted.</p>
 
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
 
-        <form asp-controller="Usuario" asp-action="Registro" method="post">
-            <div class="mb-3">
-                <label asp-for="Nombre" class="form-label"></label>
-                <input asp-for="Nombre" class="form-control" />
-                <span asp-validation-for="Nombre" class="text-danger"></span>
+    <form asp-controller="Usuario" asp-action="Registro" method="post" novalidate>
+        <div class="rol-opciones mb-3">
+            <div class="rol-opcion">
+                <input type="radio" asp-for="Rol" value="Estudiante" id="rolEstudiante" />
+                <label for="rolEstudiante"><i class="bi bi-mortarboard"></i><strong>Soy estudiante</strong><small>Consulto notas, horario y avisos</small></label>
             </div>
-            <div class="mb-3">
-                <label asp-for="CorreoElectronico" class="form-label"></label>
-                <input asp-for="CorreoElectronico" class="form-control" />
-                <span asp-validation-for="CorreoElectronico" class="text-danger"></span>
+            <div class="rol-opcion">
+                <input type="radio" asp-for="Rol" value="Docente" id="rolDocente" />
+                <label for="rolDocente"><i class="bi bi-person-workspace"></i><strong>Soy docente</strong><small>Registro notas y asistencia</small></label>
             </div>
-            <div class="mb-3">
-                <label asp-for="Contrasenna" class="form-label"></label>
-                <input asp-for="Contrasenna" class="form-control" />
-                <span asp-validation-for="Contrasenna" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Rol" class="form-label"></label>
-                <select asp-for="Rol" class="form-select">
-                    <option value="Estudiante">Estudiante</option>
-                    <option value="Docente">Docente</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Seccion" class="form-label"></label>
-                <input asp-for="Seccion" class="form-control" placeholder="Ej: Sexto Grado" />
-            </div>
-            <button type="submit" class="btn btn-principal w-100">Registrarme</button>
-        </form>
-
-        <div class="text-center mt-3">
-            <a asp-controller="Home" asp-action="Index">Ya tengo cuenta, iniciar sesión</a>
         </div>
+        <span asp-validation-for="Rol" class="text-danger small"></span>
+
+        <div class="mb-3">
+            <label asp-for="Nombre" class="form-label"></label>
+            <input asp-for="Nombre" class="form-control" autocomplete="name" />
+            <span asp-validation-for="Nombre" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="CorreoElectronico" class="form-label"></label>
+            <input asp-for="CorreoElectronico" class="form-control" autocomplete="username" />
+            <span asp-validation-for="CorreoElectronico" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6 mb-3">
+                <label asp-for="Contrasenna" class="form-label"></label>
+                <input asp-for="Contrasenna" type="password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Contrasenna" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-6 mb-3">
+                <label asp-for="ConfirmarContrasenna" class="form-label"></label>
+                <input asp-for="ConfirmarContrasenna" type="password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmarContrasenna" class="text-danger small"></span>
+            </div>
+        </div>
+
+        @* Solo el estudiante elige su grado, y lo hace de la lista oficial de secciones. *@
+        <div class="mb-3" id="bloqueSeccion">
+            <label asp-for="Seccion" class="form-label"></label>
+            @if (secciones.Any())
+            {
+                <select asp-for="Seccion" class="form-select" asp-items="@(new SelectList(secciones))">
+                    <option value="">-- Seleccione su grado --</option>
+                </select>
+            }
+            else
+            {
+                <div class="alert alert-warning py-2 mb-0 small">Aún no hay grados disponibles para matricularse. Comuníquese con la escuela.</div>
+            }
+            <span asp-validation-for="Seccion" class="text-danger small"></span>
+        </div>
+
+        <div class="alert alert-info py-2 small" id="avisoDocente" style="display:none;">
+            <i class="bi bi-info-circle me-1"></i>
+            No necesita indicar ninguna sección: la dirección le asignará sus asignaturas.
+            Su cuenta quedará <strong>pendiente de aprobación</strong> hasta que la dirección la active.
+        </div>
+
+        <button type="submit" class="btn btn-principal w-100 py-2">Crear cuenta</button>
+    </form>
+
+    <div class="text-center mt-3 small">
+        <a asp-controller="Home" asp-action="Index">Ya tengo cuenta, iniciar sesión</a>
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        function actualizarRol() {
+            const esDocente = document.getElementById('rolDocente').checked;
+            document.getElementById('bloqueSeccion').style.display = esDocente ? 'none' : '';
+            document.getElementById('avisoDocente').style.display = esDocente ? '' : 'none';
+        }
+        document.querySelectorAll('input[name="Rol"]').forEach(r => r.addEventListener('change', actualizarRol));
+        actualizarRol();
+    </script>
 }

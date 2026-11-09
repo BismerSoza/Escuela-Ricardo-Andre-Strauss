@@ -1,0 +1,58 @@
+@model List<AulaViewModel>
+@{
+    ViewData["Title"] = "Aulas";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+    <h3 class="mb-0"><i class="bi bi-door-open me-2"></i>Aulas</h3>
+    <form asp-controller="Admin" asp-action="RegistrarAula" method="post" class="d-flex gap-2">
+        <input type="text" name="nombre" class="form-control" placeholder="Ej: Aula 4" maxlength="50" required />
+        <button type="submit" class="btn btn-principal text-nowrap"><i class="bi bi-plus-lg"></i> Nueva aula</button>
+    </form>
+</div>
+<p class="text-muted">Estas aulas se ofrecen al armar el horario. El sistema impide que dos clases usen la misma aula a la misma hora.</p>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead><tr><th>Aula</th><th>Bloques de horario</th><th>Estado</th><th class="text-end"></th></tr></thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="4" class="text-muted">No hay aulas registradas.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var a in Model)
+                        {
+                            <tr>
+                                <td><i class="bi bi-door-closed me-1"></i>@a.Nombre</td>
+                                <td>@a.TotalBloques</td>
+                                <td>
+                                    @if (a.Activa) { <span class="badge bg-success">Activa</span> }
+                                    else { <span class="badge bg-secondary">Inactiva</span> }
+                                </td>
+                                <td class="text-end">
+                                    @if (a.Activa)
+                                    {
+                                        <form asp-controller="Admin" asp-action="DesactivarAula" asp-route-id="@a.ConsecutivoAula" method="post" class="d-inline"
+                                              onsubmit="return confirm('¿Desactivar esta aula? Los bloques existentes se conservan, pero no se podrá usar en bloques nuevos.');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-controller="Admin" asp-action="ActivarAula" asp-route-id="@a.ConsecutivoAula" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success">Activar</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

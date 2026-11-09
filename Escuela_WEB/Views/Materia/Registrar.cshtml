@@ -2,7 +2,8 @@
 @{
     ViewData["Title"] = "Nueva asignatura";
     var rol = Context.Session.GetString("Rol");
-    var docentes = ViewBag.Docentes as List<UsuarioAdminViewModel>;
+    var secciones = ViewBag.Secciones as List<string> ?? new List<string>();
+    var docentes = ViewBag.Docentes as List<UsuarioAdminViewModel> ?? new List<UsuarioAdminViewModel>();
 }
 
 <h3>Registrar nueva asignatura</h3>
@@ -19,11 +20,13 @@
             </div>
             <div class="mb-3">
                 <label asp-for="Seccion" class="form-label"></label>
-                <input asp-for="Seccion" class="form-control" placeholder="Ej: Sexto Grado" />
+                <select asp-for="Seccion" class="form-select" asp-items="@(new SelectList(secciones))">
+                    <option value="">-- Seleccione la sección --</option>
+                </select>
                 <span asp-validation-for="Seccion" class="text-danger"></span>
             </div>
 
-            @if (rol == "Director" && docentes != null)
+            @if (rol == "Director")
             {
                 <div class="mb-3">
                     <label asp-for="ConsecutivoDocente" class="form-label"></label>
@@ -31,9 +34,11 @@
                         <option value="">-- Seleccione un docente --</option>
                         @foreach (var d in docentes)
                         {
-                            <option value="@d.ConsecutivoUsuario">@d.Nombre</option>
+                            <option value="@d.ConsecutivoUsuario" selected="@(Model.ConsecutivoDocente == d.ConsecutivoUsuario)">@d.Nombre</option>
                         }
                     </select>
+                    <span asp-validation-for="ConsecutivoDocente" class="text-danger"></span>
+                    <div class="form-text">Al asignarle una asignatura, el docente verá automáticamente a los estudiantes de esa sección.</div>
                 </div>
             }
 

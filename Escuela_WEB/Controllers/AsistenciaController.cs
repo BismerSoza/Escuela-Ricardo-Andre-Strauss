@@ -32,7 +32,7 @@ namespace Escuela_WEB.Controllers
             var model = new PanelAsistenciaViewModel { Fecha = fecha ?? DateTime.Today };
 
             var (exitoMaterias, materias, errorMaterias) = await _api.GetAsync<List<MateriaViewModel>>("api/Materia/ConsultarMateriasAPI");
-            model.Materias = exitoMaterias ? materias ?? new() : new();
+            model.Materias = (exitoMaterias ? materias ?? new() : new()).Where(m => m.Activa).ToList();
             if (!exitoMaterias) TempData["Error"] = errorMaterias;
 
             model.MateriaSeleccionada = materiaId ?? model.Materias.FirstOrDefault()?.ConsecutivoMateria;

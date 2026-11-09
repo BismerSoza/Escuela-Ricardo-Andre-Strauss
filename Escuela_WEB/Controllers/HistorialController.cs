@@ -29,10 +29,15 @@ namespace Escuela_WEB.Controllers
             model.Estudiantes = exitoEstudiantes ? estudiantes ?? new() : new();
             if (!exitoEstudiantes) TempData["Error"] = errorEstudiantes;
 
-            var (exitoMaterias, materias, _) = await _api.GetAsync<List<MateriaViewModel>>("api/Materia/ConsultarMateriasAPI");
-            model.MateriasDisponibles = exitoMaterias ? materias ?? new() : new();
-
             model.EstudianteSeleccionado = estudianteId ?? model.Estudiantes.FirstOrDefault()?.ConsecutivoUsuario;
+
+            // Solo se pueden calificar asignaturas ACTIVAS del docente en la sección del estudiante elegido.
+            var seccionEstudiante = model.Estudiantes
+                .FirstOrDefault(e => e.ConsecutivoUsuario == model.EstudianteSeleccionado)?.Seccion;
+
+            var (exitoMaterias, materias, _) = await _api.GetAsync<List<MateriaViewModel>>("api/Materia/ConsultarMateriasAPI");
+            model.MateriasDisponibles = (exitoMaterias ? materias ?? new() : new())
+                .Where(m => m.Activa && m.Seccion == seccionEstudiante).ToList();
 
             if (model.EstudianteSeleccionado != null)
             {
@@ -40,7 +45,7 @@ namespace Escuela_WEB.Controllers
                     $"api/Historial/ConsultarHistorialAPI?estudianteId={model.EstudianteSeleccionado}");
 
                 model.Registros = exitoHist ? registros ?? new() : new();
-                model.NuevoRegistro.ConsecutivoEstudiante = model.EstudianteSeleccionado.Value;
+                if (!exitoHist) TempData["Error"] = errorHist;
             }
 
             ViewBag.PuedeRegistrar = rol == "Docente";
@@ -55,13 +60,14 @@ namespace Escuela_WEB.Controllers
         {
             if (!ModelState.IsValid)
             {
+                TempData["Error"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Distinct());
                 return RedirectToAction("Index", new { estudianteId = model.ConsecutivoEstudiante });
             }
 
             var (exito, _, error) = await _api.PostAsync<JsonElement>("api/Historial/RegistrarHistorialAPI", new
             {
                 ConsecutivoEstudiante = model.ConsecutivoEstudiante,
-                Materia = model.Materia,
+                ConsecutivoMateria = model.ConsecutivoMateria,
                 Periodo = model.Periodo,
                 Nota = model.Nota,
                 Observacion = model.Observacion
@@ -122,7 +128,9 @@ namespace Escuela_WEB.Controllers
 
             if (resultado.TryGetProperty("errores", out var errores) && errores.GetArrayLength() > 0)
             {
-                TempData["Error"] = string.Join(" | ", errores.EnumerateArray().Select(e => e.GetString()).Take(5));
+                var total = errores.GetArrayLength();
+                var detalle = string.Join(" | ", errores.EnumerateArray().Select(e => e.GetString()).Take(4));
+                TempData["Error"] = total > 4 ? $"{detalle} | ... y {total - 4} error(es) más." : detalle;
             }
 
             return RedirectToAction("Index");

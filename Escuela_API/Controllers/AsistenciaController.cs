@@ -14,24 +14,34 @@ namespace Escuela_API.Controllers
     {
         private SqlConnection Conexion => new(_config["ConnectionStrings:DefaultConnection"]);
 
+        private static readonly string[] EstadosValidos = { "Presente", "Ausente", "Tardía", "Justificada" };
+
         // GET api/Asistencia/ConsultarPorMateriaAPI?materiaId=1&fecha=2026-05-04
-        // Uso: Docente/Director pasan lista de estudiantes para marcar asistencia de un dia.
+        // Uso: el Docente (solo de SUS asignaturas) o el Director (solo lectura, cualquiera)
+        // consulta la lista de estudiantes de la sección de la asignatura para un día.
         [Authorize(Roles = "Director,Docente")]
         [HttpGet("ConsultarPorMateriaAPI")]
         public IActionResult ConsultarPorMateriaAPI(int materiaId, DateTime fecha)
         {
             using var context = Conexion;
 
-            var estudiantes = context.Query(@"
+            var materia = ObtenerMateria(context, materiaId);
+            if (materia == null) return NotFound("La asignatura no existe.");
+
+            if (_utiles.ObtenerRolToken() == "Docente" && materia.ConsecutivoDocente != _utiles.ObtenerConsecutivoToken())
+            {
+                return Forbid();
+            }
+
+            var estudiantes = context.Query<EstudianteAsistenciaResponseModel>(@"
                 SELECT u.ConsecutivoUsuario, u.Nombre,
                        a.ConsecutivoAsistencia, a.Estado, a.Observacion
                 FROM Usuario u
-                INNER JOIN Materia m ON m.Seccion = u.Seccion
                 LEFT JOIN Asistencia a ON a.ConsecutivoEstudiante = u.ConsecutivoUsuario
                     AND a.ConsecutivoMateria = @MateriaId AND a.Fecha = @Fecha
-                WHERE u.Rol = 'Estudiante' AND m.ConsecutivoMateria = @MateriaId
+                WHERE u.Rol = 'Estudiante' AND u.Activo = 1 AND u.Seccion = @Seccion
                 ORDER BY u.Nombre",
-                new { MateriaId = materiaId, Fecha = fecha.Date });
+                new { MateriaId = materiaId, Fecha = fecha.Date, materia.Seccion });
 
             return Ok(estudiantes);
         }
@@ -46,8 +56,43 @@ namespace Escuela_API.Controllers
                 return BadRequest("Debe incluir al menos un registro de asistencia.");
             }
 
+            if (model.Fecha.Date > DateTime.Today)
+            {
+                return BadRequest("No se puede registrar asistencia de una fecha futura.");
+            }
+
             using var context = Conexion;
             var docenteId = _utiles.ObtenerConsecutivoToken();
+
+            var materia = ObtenerMateria(context, model.ConsecutivoMateria);
+            if (materia == null || !materia.Activa) return BadRequest("La asignatura no existe o está desactivada.");
+            if (materia.ConsecutivoDocente != docenteId) return Forbid();
+
+            // Solo estudiantes activos de la sección de esa asignatura.
+            var idsValidos = context.Query<int>(
+                "SELECT ConsecutivoUsuario FROM Usuario WHERE Rol = 'Estudiante' AND Activo = 1 AND Seccion = @Seccion",
+                new { materia.Seccion }).ToHashSet();
+
+            foreach (var registro in model.Registros)
+            {
+                if (!idsValidos.Contains(registro.ConsecutivoEstudiante))
+                {
+                    return BadRequest("Hay estudiantes que no pertenecen a la sección de esta asignatura.");
+                }
+
+                if (!EstadosValidos.Contains(registro.Estado))
+                {
+                    return BadRequest("Hay un estado de asistencia inválido.");
+                }
+
+                if (registro.Observacion != null && registro.Observacion.Length > 300)
+                {
+                    return BadRequest("Las observaciones no pueden superar 300 caracteres.");
+                }
+            }
+
+            context.Open();
+            using var tx = context.BeginTransaction();
 
             foreach (var registro in model.Registros)
             {
@@ -58,7 +103,7 @@ namespace Escuela_API.Controllers
                        AND destino.ConsecutivoMateria = origen.ConsecutivoMateria
                        AND destino.Fecha = origen.Fecha
                     WHEN MATCHED THEN
-                        UPDATE SET Estado = @Estado, Observacion = @Observacion
+                        UPDATE SET Estado = @Estado, Observacion = @Observacion, ConsecutivoDocente = @Docente
                     WHEN NOT MATCHED THEN
                         INSERT (ConsecutivoEstudiante, ConsecutivoMateria, ConsecutivoDocente, Fecha, Estado, Observacion)
                         VALUES (@Estudiante, @Materia, @Docente, @Fecha, @Estado, @Observacion);",
@@ -69,11 +114,20 @@ namespace Escuela_API.Controllers
                         Docente = docenteId,
                         Fecha = model.Fecha.Date,
                         registro.Estado,
-                        registro.Observacion
-                    });
+                        Observacion = string.IsNullOrWhiteSpace(registro.Observacion) ? null : registro.Observacion.Trim()
+                    }, tx);
             }
 
+            tx.Commit();
+
             return Ok(new { Mensaje = "Asistencia registrada correctamente.", Total = model.Registros.Count });
+        }
+
+        private static MateriaBasica? ObtenerMateria(SqlConnection context, int materiaId)
+        {
+            return context.QueryFirstOrDefault<MateriaBasica>(@"
+                SELECT ConsecutivoMateria, Nombre, Seccion, ConsecutivoDocente, Activa
+                FROM Materia WHERE ConsecutivoMateria = @Id", new { Id = materiaId });
         }
 
         // GET api/Asistencia/ConsultarMiAsistenciaAPI  (Estudiante ve su propio historial)

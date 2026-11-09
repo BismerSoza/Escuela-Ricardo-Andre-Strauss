@@ -5,6 +5,13 @@ using System.Text.Json;
 
 namespace Escuela_WEB.Services
 {
+    // Se lanza cuando la API rechaza el token (401): la sesión venció, o el Director
+    // desactivó la cuenta / cambió su rol. El filtro global la convierte en un regreso al login.
+    public class SesionExpiradaException : Exception
+    {
+        public SesionExpiradaException() : base("La sesión ya no es válida.") { }
+    }
+
     // Encapsula las llamadas HTTP hacia Escuela_API, agregando automaticamente
     // el token JWT guardado en la sesion del usuario autenticado.
     public class ApiClienteService(IHttpClientFactory _httpClientFactory, IHttpContextAccessor _httpContext, IConfiguration _config)
@@ -53,6 +60,7 @@ namespace Escuela_WEB.Services
         {
             var cliente = CrearCliente();
             var respuesta = await cliente.DeleteAsync(ruta);
+            VerificarSesion(respuesta);
 
             if (respuesta.IsSuccessStatusCode) return (true, null);
 
@@ -65,6 +73,7 @@ namespace Escuela_WEB.Services
         {
             var cliente = CrearCliente();
             var respuesta = await cliente.GetAsync(ruta);
+            VerificarSesion(respuesta);
 
             if (!respuesta.IsSuccessStatusCode)
             {
@@ -96,8 +105,20 @@ namespace Escuela_WEB.Services
             return await ProcesarRespuesta<T>(respuesta);
         }
 
+        // 401 con un token enviado = sesión inválida. (Un 401 del login no lleva token y se muestra como error normal.)
+        private static void VerificarSesion(HttpResponseMessage respuesta)
+        {
+            if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                && respuesta.RequestMessage?.Headers.Authorization != null)
+            {
+                throw new SesionExpiradaException();
+            }
+        }
+
         private static async Task<(bool, T, string?)> ProcesarRespuesta<T>(HttpResponseMessage respuesta)
         {
+            VerificarSesion(respuesta);
+
             var contenido = await respuesta.Content.ReadAsStringAsync();
 
             if (!respuesta.IsSuccessStatusCode)

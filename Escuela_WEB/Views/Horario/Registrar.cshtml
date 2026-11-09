@@ -1,61 +1,141 @@
 @model RegistrarHorarioViewModel
 @{
     ViewData["Title"] = "Agregar bloque de horario";
-    var materias = ViewBag.Materias as List<MateriaViewModel>;
+    var materias = ViewBag.Materias as List<MateriaViewModel> ?? new List<MateriaViewModel>();
+    var aulas = ViewBag.Aulas as List<AulaViewModel> ?? new List<AulaViewModel>();
     var dias = (string[])ViewBag.Dias;
 }
 
 <h3>Agregar bloque de horario</h3>
 
-<div class="card" style="max-width:550px;">
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+<div class="row">
+    <div class="col-lg-7 col-xl-6">
+        <div class="card">
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
 
-        <form asp-controller="Horario" asp-action="Registrar" method="post">
-            <div class="mb-3">
-                <label asp-for="ConsecutivoMateria" class="form-label"></label>
-                <select asp-for="ConsecutivoMateria" class="form-select">
-                    <option value="">-- Seleccione una asignatura --</option>
-                    @if (materias != null)
-                    {
-                        foreach (var m in materias)
-                        {
-                            <option value="@m.ConsecutivoMateria">@m.Nombre (@m.Seccion)</option>
-                        }
-                    }
-                </select>
+                @if (!materias.Any())
+                {
+                    <div class="alert alert-warning mb-0">No hay asignaturas activas para programar. Cree una en «Asignaturas» primero.</div>
+                }
+                else
+                {
+                    <form asp-controller="Horario" asp-action="Registrar" method="post" id="formBloque" novalidate>
+                        <div class="mb-3">
+                            <label asp-for="ConsecutivoMateria" class="form-label"></label>
+                            <select asp-for="ConsecutivoMateria" class="form-select">
+                                <option value="0">-- Seleccione una asignatura --</option>
+                                @foreach (var m in materias)
+                                {
+                                    <option value="@m.ConsecutivoMateria" selected="@(Model.ConsecutivoMateria == m.ConsecutivoMateria)">@m.Nombre — @m.Seccion</option>
+                                }
+                            </select>
+                            <span asp-validation-for="ConsecutivoMateria" class="text-danger small"></span>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4 mb-3">
+                                <label asp-for="DiaSemana" class="form-label"></label>
+                                <select asp-for="DiaSemana" class="form-select">
+                                    @foreach (var d in dias)
+                                    {
+                                        <option value="@d" selected="@(Model.DiaSemana == d)">@d</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6 col-sm-4 mb-3">
+                                <label asp-for="HoraInicio" class="form-label"></label>
+                                <input asp-for="HoraInicio" type="time" step="300" min="06:00" max="18:00" class="form-control" />
+                                <span asp-validation-for="HoraInicio" class="text-danger small"></span>
+                            </div>
+                            <div class="col-6 col-sm-4 mb-3">
+                                <label asp-for="HoraFin" class="form-label"></label>
+                                <input asp-for="HoraFin" type="time" step="300" min="06:00" max="18:00" class="form-control" />
+                                <span asp-validation-for="HoraFin" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="ConsecutivoAula" class="form-label"></label>
+                            <select asp-for="ConsecutivoAula" class="form-select">
+                                <option value="">-- Seleccione el aula --</option>
+                                @foreach (var a in aulas)
+                                {
+                                    <option value="@a.ConsecutivoAula" selected="@(Model.ConsecutivoAula == a.ConsecutivoAula)">@a.Nombre</option>
+                                }
+                            </select>
+                            <span asp-validation-for="ConsecutivoAula" class="text-danger small"></span>
+                        </div>
+
+                        <div id="estadoDisp" class="estado-disp mb-3" role="status" aria-live="polite"></div>
+
+                        <button type="submit" class="btn btn-principal" id="btnGuardar">Guardar bloque</button>
+                        <a asp-controller="Horario" asp-action="Index" class="btn btn-link">Cancelar</a>
+                    </form>
+                }
             </div>
-            <div class="mb-3">
-                <label asp-for="DiaSemana" class="form-label"></label>
-                <select asp-for="DiaSemana" class="form-select">
-                    @foreach (var d in dias)
-                    {
-                        <option value="@d">@d</option>
-                    }
-                </select>
+        </div>
+    </div>
+    <div class="col-lg-5 col-xl-4 mt-3 mt-lg-0">
+        <div class="card">
+            <div class="card-body small text-muted">
+                <h6 class="text-body"><i class="bi bi-shield-check me-1"></i>Cómo evita los choques</h6>
+                Un bloque no se puede guardar si en ese día y hora se cruza con otro que use:
+                <ul class="mb-2 mt-1">
+                    <li>la misma <strong>aula</strong>,</li>
+                    <li>el mismo <strong>docente</strong>, o</li>
+                    <li>la misma <strong>sección</strong>.</li>
+                </ul>
+                Mientras completa el formulario se revisa automáticamente. Dos clases seguidas (07:00–08:00 y 08:00–09:00) sí son válidas.
             </div>
-            <div class="row">
-                <div class="col-6 mb-3">
-                    <label asp-for="HoraInicio" class="form-label"></label>
-                    <input asp-for="HoraInicio" type="time" class="form-control" />
-                    <span asp-validation-for="HoraInicio" class="text-danger"></span>
-                </div>
-                <div class="col-6 mb-3">
-                    <label asp-for="HoraFin" class="form-label"></label>
-                    <input asp-for="HoraFin" type="time" class="form-control" />
-                    <span asp-validation-for="HoraFin" class="text-danger"></span>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Aula" class="form-label"></label>
-                <input asp-for="Aula" class="form-control" placeholder="Ej: Aula 3" />
-            </div>
-            <button type="submit" class="btn btn-principal">Guardar</button>
-            <a asp-controller="Horario" asp-action="Index" class="btn btn-link">Cancelar</a>
-        </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        const formBloque = document.getElementById('formBloque');
+        if (formBloque) {
+            const caja = document.getElementById('estadoDisp');
+            const boton = document.getElementById('btnGuardar');
+            const campo = id => document.getElementById(id);
+            let contador = 0;
+
+            async function verificar() {
+                const materia = campo('ConsecutivoMateria').value;
+                const dia = campo('DiaSemana').value;
+                const ini = campo('HoraInicio').value;
+                const fin = campo('HoraFin').value;
+                const aula = campo('ConsecutivoAula').value;
+
+                caja.className = 'estado-disp';
+                boton.disabled = false;
+                if (!materia || materia === '0' || !ini || !fin || !aula) return;
+
+                const turno = ++contador;
+                const url = `/Horario/Verificar?consecutivoMateria=${encodeURIComponent(materia)}&diaSemana=${encodeURIComponent(dia)}`
+                          + `&horaInicio=${encodeURIComponent(ini)}&horaFin=${encodeURIComponent(fin)}&consecutivoAula=${encodeURIComponent(aula)}`;
+
+                try {
+                    const respuesta = await fetchSeguro(url);
+                    if (!respuesta.ok || turno !== contador) return;
+                    const datos = await respuesta.json();
+
+                    if (datos.disponible) {
+                        caja.className = 'estado-disp ok';
+                        caja.innerHTML = '<i class="bi bi-check-circle me-1"></i>Espacio disponible: no hay choques.';
+                    } else {
+                        caja.className = 'estado-disp mal';
+                        caja.innerHTML = '<i class="bi bi-x-circle me-1"></i><strong>Hay un choque de horario:</strong><ul></ul>';
+                        const lista = caja.querySelector('ul');
+                        datos.conflictos.forEach(c => { const li = document.createElement('li'); li.textContent = c; lista.appendChild(li); });
+                        boton.disabled = true;
+                    }
+                } catch { /* fetchSeguro ya avisó del error */ }
+            }
+
+            ['ConsecutivoMateria', 'DiaSemana', 'HoraInicio', 'HoraFin', 'ConsecutivoAula']
+                .forEach(id => campo(id).addEventListener('change', verificar));
+            verificar();
+        }
+    </script>
 }

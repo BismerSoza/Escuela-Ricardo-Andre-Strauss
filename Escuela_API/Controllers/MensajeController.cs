@@ -17,15 +17,19 @@ namespace Escuela_API.Controllers
         private SqlConnection Conexion => new(_config["ConnectionStrings:DefaultConnection"]);
 
         // GET api/Mensaje/ConsultarContactosAPI
-        // Docente   -> estudiantes de su seccion + Director.
-        // Estudiante -> docentes de su seccion + Director.
-        // Director  -> todos los docentes y estudiantes de la institucion.
+        // Docente    -> estudiantes de las secciones donde dicta clases + Director.
+        // Estudiante -> docentes que dictan en su sección + Director.
+        // Director   -> todos los docentes y estudiantes activos.
         [HttpGet("ConsultarContactosAPI")]
         public IActionResult ConsultarContactosAPI()
         {
             using var context = Conexion;
+            return Ok(ObtenerContactos(context));
+        }
+
+        private List<ContactoResponseModel> ObtenerContactos(SqlConnection context)
+        {
             var rol = _utiles.ObtenerRolToken();
-            var seccion = _utiles.ObtenerSeccionToken();
             var propioId = _utiles.ObtenerConsecutivoToken();
 
             IEnumerable<ContactoResponseModel> contactos;
@@ -42,19 +46,28 @@ namespace Escuela_API.Controllers
                 contactos = context.Query<ContactoResponseModel>(@"
                     SELECT ConsecutivoUsuario, Nombre, CorreoElectronico, Rol, Seccion
                     FROM Usuario
-                    WHERE (Rol = 'Estudiante' AND (Seccion = @Seccion OR @Seccion IS NULL)) OR Rol = 'Director'
+                    WHERE Activo = 1 AND (
+                        Rol = 'Director'
+                        OR (Rol = 'Estudiante' AND Seccion IN (
+                              SELECT Seccion FROM Materia WHERE ConsecutivoDocente = @Id AND Activa = 1)))
                     ORDER BY Rol, Nombre",
-                    new { Seccion = seccion });
+                    new { Id = propioId });
             }
             else
             {
                 contactos = context.Query<ContactoResponseModel>(@"
-                    SELECT ConsecutivoUsuario, Nombre, CorreoElectronico, Rol, Seccion
-                    FROM Usuario WHERE Rol = 'Docente' OR Rol = 'Director'
-                    ORDER BY Rol, Nombre");
+                    SELECT u.ConsecutivoUsuario, u.Nombre, u.CorreoElectronico, u.Rol, u.Seccion
+                    FROM Usuario u
+                    WHERE u.Activo = 1 AND (
+                        u.Rol = 'Director'
+                        OR (u.Rol = 'Docente' AND EXISTS (
+                              SELECT 1 FROM Materia m
+                              WHERE m.ConsecutivoDocente = u.ConsecutivoUsuario AND m.Activa = 1 AND m.Seccion = @Seccion)))
+                    ORDER BY u.Rol, u.Nombre",
+                    new { Seccion = _utiles.ObtenerSeccionToken() });
             }
 
-            return Ok(contactos.Where(c => c.ConsecutivoUsuario != propioId));
+            return contactos.Where(c => c.ConsecutivoUsuario != propioId).ToList();
         }
 
         // GET api/Mensaje/ConsultarConversacionAPI/5
@@ -105,17 +118,19 @@ namespace Escuela_API.Controllers
             using var context = Conexion;
             var emisorId = _utiles.ObtenerConsecutivoToken();
 
-            var destinatarioExiste = context.QueryFirstOrDefault<int?>(
-                "SELECT ConsecutivoUsuario FROM Usuario WHERE ConsecutivoUsuario = @Id",
-                new { Id = model.ConsecutivoReceptor });
+            if (model.Contenido.Length > 2000) return BadRequest("El mensaje no puede superar 2000 caracteres.");
 
-            if (destinatarioExiste == null) return NotFound("El destinatario no existe.");
+            // Solo se puede escribir a personas que aparecen en la lista de contactos del usuario.
+            if (!ObtenerContactos(context).Any(c => c.ConsecutivoUsuario == model.ConsecutivoReceptor))
+            {
+                return BadRequest("No puede enviar mensajes a ese destinatario.");
+            }
 
             var nuevoId = context.QueryFirstOrDefault<int>(@"
                 INSERT INTO Mensaje (ConsecutivoEmisor, ConsecutivoReceptor, Contenido)
                 OUTPUT INSERTED.ConsecutivoMensaje
                 VALUES (@Emisor, @Receptor, @Contenido)",
-                new { Emisor = emisorId, Receptor = model.ConsecutivoReceptor, model.Contenido });
+                new { Emisor = emisorId, Receptor = model.ConsecutivoReceptor, Contenido = model.Contenido.Trim() });
 
             // Notificacion en tiempo real via SignalR a los clientes conectados al chat del destinatario.
             await _hub.Clients.Group($"usuario-{model.ConsecutivoReceptor}")
@@ -124,7 +139,7 @@ namespace Escuela_API.Controllers
                     ConsecutivoMensaje = nuevoId,
                     ConsecutivoEmisor = emisorId,
                     ConsecutivoReceptor = model.ConsecutivoReceptor,
-                    model.Contenido,
+                    Contenido = model.Contenido.Trim(),
                     FechaCreacion = DateTime.Now
                 });
 

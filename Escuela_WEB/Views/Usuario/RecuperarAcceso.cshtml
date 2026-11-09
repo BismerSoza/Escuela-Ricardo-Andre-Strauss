@@ -1,38 +1,31 @@
 @model RecuperarAccesoViewModel
 @{
-    Layout = "_LayoutExterno";
+    Layout = "_LayoutLogin";
     ViewData["Title"] = "Recuperar acceso";
 }
 
-<div class="card tarjeta-login">
-    <div class="card-body p-4">
-        <h4 class="text-center mb-4">Recuperar acceso</h4>
+<div class="login-card">
+    <h2>Recuperar acceso</h2>
+    <p class="sub">Indique su correo y la dirección de la escuela le entregará una contraseña temporal.</p>
 
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
 
-        @if (ViewBag.Mensaje != null)
-        {
-            <div class="alert alert-success">
-                @ViewBag.Mensaje
-                @if (ViewBag.ContrasennaTemporal != null)
-                {
-                    <div>Contraseña temporal (solo demostración): <strong>@ViewBag.ContrasennaTemporal</strong></div>
-                }
-            </div>
-        }
+    @if (ViewBag.Mensaje != null)
+    {
+        <div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i>@ViewBag.Mensaje</div>
+    }
 
-        <form asp-controller="Usuario" asp-action="RecuperarAcceso" method="post">
-            <div class="mb-3">
-                <label asp-for="CorreoElectronico" class="form-label"></label>
-                <input asp-for="CorreoElectronico" class="form-control" />
-                <span asp-validation-for="CorreoElectronico" class="text-danger"></span>
-            </div>
-            <button type="submit" class="btn btn-principal w-100">Solicitar contraseña temporal</button>
-        </form>
-
-        <div class="text-center mt-3">
-            <a asp-controller="Home" asp-action="Index">Volver al inicio de sesión</a>
+    <form asp-controller="Usuario" asp-action="RecuperarAcceso" method="post" novalidate>
+        <div class="mb-3">
+            <label asp-for="CorreoElectronico" class="form-label"></label>
+            <input asp-for="CorreoElectronico" class="form-control" autocomplete="username" />
+            <span asp-validation-for="CorreoElectronico" class="text-danger small"></span>
         </div>
+        <button type="submit" class="btn btn-principal w-100 py-2">Solicitar contraseña temporal</button>
+    </form>
+
+    <div class="text-center mt-3 small">
+        <a asp-controller="Home" asp-action="Index">Volver al inicio de sesión</a>
     </div>
 </div>
 

@@ -8,6 +8,18 @@
 
 @await Html.PartialAsync("_Hero", "Vista general de la institución: usuarios, asignaturas, rendimiento académico y comunicación.")
 
+@if (Model.UsuariosPendientes > 0 || Model.ClavesSolicitadas > 0)
+{
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <i class="bi bi-bell me-1"></i>
+            @if (Model.UsuariosPendientes > 0) { <span><strong>@Model.UsuariosPendientes</strong> cuenta(s) de docente esperan su aprobación.</span> }
+            @if (Model.ClavesSolicitadas > 0) { <span class="ms-2"><strong>@Model.ClavesSolicitadas</strong> usuario(s) pidieron una contraseña nueva.</span> }
+        </div>
+        <a asp-controller="Admin" asp-action="Usuarios" class="btn btn-sm btn-principal">Revisar usuarios</a>
+    </div>
+}
+
 <div class="row g-3 mb-3">
     <div class="col-sm-6 col-xl-3">
         @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Usuarios activos", Valor = Model.TotalUsuarios.ToString(), Icono = "bi-people", Color = "azul", Pie = "Dirección, docentes y estudiantes" })
@@ -72,11 +84,12 @@
             <div class="panel-head"><h6><i class="bi bi-lightning-charge"></i>Administración</h6></div>
             <div class="panel-body">
                 <div class="row g-3">
-                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Gestión de usuarios", Descripcion = "Cree cuentas, active o desactive accesos y cambie roles.", Icono = "bi-people", Controlador = "Admin", Accion = "Usuarios" })</div>
-                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Secciones", Descripcion = "Consulte las secciones y las asignaturas de cada una.", Icono = "bi-diagram-3", Controlador = "Admin", Accion = "Secciones" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Gestión de usuarios", Descripcion = "Apruebe docentes, active o desactive accesos, cambie roles y restablezca contraseñas.", Icono = "bi-people", Controlador = "Admin", Accion = "Usuarios" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Secciones", Descripcion = "Administre los grados y vea las asignaturas de cada uno.", Icono = "bi-diagram-3", Controlador = "Admin", Accion = "Secciones" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Asignaturas", Descripcion = "Cree asignaturas y asígnelas a cada docente.", Icono = "bi-journal-bookmark", Controlador = "Materia" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Calificaciones", Descripcion = "Consulte el historial de cualquier estudiante y expórtelo a PDF.", Icono = "bi-journal-check", Controlador = "Historial" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Publicar aviso", Descripcion = "Envíe comunicados a toda la institución o a una sección.", Icono = "bi-megaphone", Controlador = "Aviso", Accion = "Publicar" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Horarios y aulas", Descripcion = "Arme el calendario semanal sin choques de aula, docente o sección.", Icono = "bi-calendar3", Controlador = "Horario" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Errores del sistema", Descripcion = "Revise la bitácora de errores técnicos registrados.", Icono = "bi-exclamation-triangle", Controlador = "Admin", Accion = "Errores" })</div>
                 </div>
             </div>

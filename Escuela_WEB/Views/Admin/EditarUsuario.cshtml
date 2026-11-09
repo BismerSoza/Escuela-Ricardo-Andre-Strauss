@@ -1,0 +1,54 @@
+@model EditarUsuarioViewModel
+@{
+    ViewData["Title"] = "Editar usuario";
+    var secciones = ViewBag.Secciones as List<string> ?? new List<string>();
+}
+
+<h3>Editar usuario</h3>
+
+<div class="card" style="max-width:550px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <div class="fw-semibold">@Model.Nombre</div>
+            <div class="text-muted small">@Model.CorreoElectronico</div>
+        </div>
+
+        <form asp-controller="Admin" asp-action="EditarUsuario" method="post">
+            <input type="hidden" asp-for="ConsecutivoUsuario" />
+            <input type="hidden" asp-for="Nombre" />
+            <input type="hidden" asp-for="CorreoElectronico" />
+
+            <div class="mb-3">
+                <label asp-for="Rol" class="form-label"></label>
+                <select asp-for="Rol" class="form-select" id="selRol">
+                    <option value="Estudiante">Estudiante</option>
+                    <option value="Docente">Docente</option>
+                    <option value="Director">Director</option>
+                </select>
+            </div>
+            <div class="mb-3" id="bloqueSeccion">
+                <label asp-for="Seccion" class="form-label"></label>
+                <select asp-for="Seccion" class="form-select" asp-items="@(new SelectList(secciones))">
+                    <option value="">-- Seleccione la sección --</option>
+                </select>
+                <span asp-validation-for="Seccion" class="text-danger"></span>
+            </div>
+            <div class="form-text mb-3">Un docente con asignaturas activas no puede cambiar de rol hasta reasignarlas o desactivarlas.</div>
+            <button type="submit" class="btn btn-principal">Guardar cambios</button>
+            <a asp-controller="Admin" asp-action="Usuarios" class="btn btn-link">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function actualizarRol() {
+            document.getElementById('bloqueSeccion').style.display = document.getElementById('selRol').value === 'Estudiante' ? '' : 'none';
+        }
+        document.getElementById('selRol').addEventListener('change', actualizarRol);
+        actualizarRol();
+    </script>
+}

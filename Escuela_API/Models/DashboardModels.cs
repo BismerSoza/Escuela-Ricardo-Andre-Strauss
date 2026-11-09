@@ -36,6 +36,8 @@ namespace Escuela_API.Models
         public int TotalMaterias { get; set; }
         public double PromedioInstitucional { get; set; }
         public int AvisosRecientes { get; set; }
+        public int UsuariosPendientes { get; set; }
+        public int ClavesSolicitadas { get; set; }
         public List<string> Secciones { get; set; } = new();
         public List<double> PromediosPorSeccion { get; set; } = new();
     }
@@ -49,6 +51,8 @@ namespace Escuela_API.Models
         public string Rol { get; set; } = string.Empty;
         public string? Seccion { get; set; }
         public bool Activo { get; set; }
+        public bool Pendiente { get; set; }
+        public DateTime? ClaveSolicitada { get; set; }
         public DateTime FechaCreacion { get; set; }
     }
 

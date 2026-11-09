@@ -19,10 +19,11 @@ namespace Escuela_WEB.Models
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         public string Nombre { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La sección es obligatoria.")]
+        [Required(ErrorMessage = "Seleccione la sección.")]
+        [Display(Name = "Grado / Sección")]
         public string Seccion { get; set; } = string.Empty;
 
-        [Display(Name = "Docente a cargo (solo Director)")]
+        [Display(Name = "Docente a cargo")]
         public int? ConsecutivoDocente { get; set; }
     }
 
@@ -32,15 +33,36 @@ namespace Escuela_WEB.Models
         public int ConsecutivoHorario { get; set; }
         public int ConsecutivoMateria { get; set; }
         public string Materia { get; set; } = string.Empty;
+        public string Seccion { get; set; } = string.Empty;
+        public int ConsecutivoDocente { get; set; }
+        public string Docente { get; set; } = string.Empty;
         public string DiaSemana { get; set; } = string.Empty;
         public string HoraInicio { get; set; } = string.Empty;
         public string HoraFin { get; set; } = string.Empty;
+        public int? ConsecutivoAula { get; set; }
         public string? Aula { get; set; }
     }
 
-    public class RegistrarHorarioViewModel
+    public class AulaViewModel
     {
-        [Required]
+        public int ConsecutivoAula { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public bool Activa { get; set; }
+        public int TotalBloques { get; set; }
+    }
+
+    public class SeccionAdminViewModel
+    {
+        public int ConsecutivoSeccion { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public bool Activa { get; set; }
+        public int TotalEstudiantes { get; set; }
+        public int TotalMaterias { get; set; }
+    }
+
+    public class RegistrarHorarioViewModel : IValidatableObject
+    {
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione una asignatura.")]
         [Display(Name = "Asignatura")]
         public int ConsecutivoMateria { get; set; }
 
@@ -49,14 +71,39 @@ namespace Escuela_WEB.Models
         public string DiaSemana { get; set; } = "Lunes";
 
         [Required(ErrorMessage = "La hora de inicio es obligatoria.")]
-        [Display(Name = "Hora inicio")]
+        [Display(Name = "Hora de inicio")]
         public string HoraInicio { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La hora de fin es obligatoria.")]
-        [Display(Name = "Hora fin")]
+        [Display(Name = "Hora de fin")]
         public string HoraFin { get; set; } = string.Empty;
 
-        public string? Aula { get; set; }
+        [Required(ErrorMessage = "Seleccione el aula.")]
+        [Display(Name = "Aula")]
+        public int? ConsecutivoAula { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext contexto)
+        {
+            if (!string.IsNullOrEmpty(HoraInicio) && !string.IsNullOrEmpty(HoraFin)
+                && string.CompareOrdinal(HoraInicio, HoraFin) >= 0)
+            {
+                yield return new ValidationResult("La hora de fin debe ser posterior a la de inicio.", new[] { nameof(HoraFin) });
+            }
+        }
+    }
+
+    // Todo lo que necesita la pantalla del calendario semanal.
+    public class PanelHorarioViewModel
+    {
+        public List<HorarioViewModel> Bloques { get; set; } = new();
+        public string Rol { get; set; } = string.Empty;
+        public int ConsecutivoUsuario { get; set; }
+        public string? Tipo { get; set; }           // mio | seccion | aula | docente
+        public string? Valor { get; set; }
+        public List<string> Secciones { get; set; } = new();
+        public List<AulaViewModel> Aulas { get; set; } = new();
+        public List<UsuarioAdminViewModel> Docentes { get; set; } = new();
+        public bool PuedeGestionar => Rol == "Director" || Rol == "Docente";
     }
 
     // ---------- Asistencia ----------
@@ -116,6 +163,8 @@ namespace Escuela_WEB.Models
         public int TotalMaterias { get; set; }
         public double PromedioInstitucional { get; set; }
         public int AvisosRecientes { get; set; }
+        public int UsuariosPendientes { get; set; }
+        public int ClavesSolicitadas { get; set; }
         public List<string> Secciones { get; set; } = new();
         public List<double> PromediosPorSeccion { get; set; } = new();
     }
@@ -129,12 +178,34 @@ namespace Escuela_WEB.Models
         public string Rol { get; set; } = string.Empty;
         public string? Seccion { get; set; }
         public bool Activo { get; set; }
+        public bool Pendiente { get; set; }
+        public DateTime? ClaveSolicitada { get; set; }
         public DateTime FechaCreacion { get; set; }
     }
 
-    public class RegistrarUsuarioAdminViewModel
+    public class EditarUsuarioViewModel : IValidatableObject
+    {
+        public int ConsecutivoUsuario { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string CorreoElectronico { get; set; } = string.Empty;
+
+        [Required]
+        public string Rol { get; set; } = "Estudiante";
+
+        [Display(Name = "Grado / Sección")]
+        public string? Seccion { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext contexto)
+        {
+            if (Rol == "Estudiante" && string.IsNullOrWhiteSpace(Seccion))
+                yield return new ValidationResult("Seleccione la sección del estudiante.", new[] { nameof(Seccion) });
+        }
+    }
+
+    public class RegistrarUsuarioAdminViewModel : IValidatableObject
     {
         [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(150, ErrorMessage = "El nombre es demasiado largo.")]
         public string Nombre { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El correo es obligatorio.")]
@@ -144,13 +215,20 @@ namespace Escuela_WEB.Models
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [MinLength(6, ErrorMessage = "Debe tener al menos 6 caracteres.")]
+        [Display(Name = "Contraseña inicial")]
         public string Contrasenna { get; set; } = string.Empty;
 
         [Required]
         public string Rol { get; set; } = "Estudiante";
 
-        [Display(Name = "Sección / Grupo")]
+        [Display(Name = "Grado / Sección")]
         public string? Seccion { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext contexto)
+        {
+            if (Rol == "Estudiante" && string.IsNullOrWhiteSpace(Seccion))
+                yield return new ValidationResult("Seleccione la sección del estudiante.", new[] { nameof(Seccion) });
+        }
     }
 
     public class RegistroErrorViewModel

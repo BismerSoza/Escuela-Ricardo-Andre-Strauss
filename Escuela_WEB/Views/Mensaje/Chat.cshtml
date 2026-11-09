@@ -32,7 +32,7 @@
             <div class="card-header" id="tituloChat">Seleccione un contacto</div>
             <div class="card-body">
                 <div class="contenedor-chat" id="contenedorChat"></div>
-                <form id="formMensaje" class="d-flex gap-2 mt-3" style="display:none;">
+                <form id="formMensaje" class="d-none gap-2 mt-3">
                     <input type="text" class="form-control" id="contenidoMensaje" placeholder="Escriba su mensaje..." required />
                     <button type="submit" class="btn btn-principal">Enviar</button>
                 </form>
@@ -71,7 +71,9 @@
         function seleccionarContacto(id, nombre, botonElemento) {
             contactoActivo = id;
             document.getElementById('tituloChat').textContent = 'Conversación con ' + nombre;
-            document.getElementById('formMensaje').style.display = 'flex';
+            const formulario = document.getElementById('formMensaje');
+            formulario.classList.remove('d-none');
+            formulario.classList.add('d-flex');
 
             document.querySelectorAll('.lista-contactos button').forEach(b => b.classList.remove('activo'));
             botonElemento.classList.add('activo');
@@ -99,8 +101,16 @@
 
             const div = document.createElement('div');
             div.className = emisor == usuarioActual ? 'mensaje-propio' : 'mensaje-ajeno';
-            div.innerHTML = contenido + `<div class="small ${emisor == usuarioActual ? 'text-white-50' : 'text-muted'}">` +
-                new Date(fecha).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) + '</div>';
+
+            // textContent (no innerHTML): el texto de un mensaje jamás se interpreta como HTML/JavaScript.
+            const texto = document.createElement('div');
+            texto.textContent = contenido;
+            div.appendChild(texto);
+
+            const hora = document.createElement('div');
+            hora.className = 'small ' + (emisor == usuarioActual ? 'text-white-50' : 'text-muted');
+            hora.textContent = new Date(fecha).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+            div.appendChild(hora);
 
             contenedor.appendChild(div);
             if (autoScroll) contenedor.scrollTop = contenedor.scrollHeight;

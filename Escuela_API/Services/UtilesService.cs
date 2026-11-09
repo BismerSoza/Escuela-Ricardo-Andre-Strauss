@@ -40,12 +40,12 @@ namespace Escuela_API.Services
 
         public string GenerarContrasennaTemporal()
         {
-            const string caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
+            // Sin caracteres ambiguos (0/O, 1/I/L) para que sea fácil de dictar o copiar.
+            const string caracteres = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
             var chars = new char[10];
 
-            for (int i = 0; i < 10; i++)
-                chars[i] = caracteres[random.Next(caracteres.Length)];
+            for (int i = 0; i < chars.Length; i++)
+                chars[i] = caracteres[System.Security.Cryptography.RandomNumberGenerator.GetInt32(caracteres.Length)];
 
             return new string(chars);
         }

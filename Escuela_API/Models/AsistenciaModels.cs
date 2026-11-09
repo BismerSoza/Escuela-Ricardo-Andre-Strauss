@@ -14,6 +14,15 @@ namespace Escuela_API.Models
         public List<RegistrarAsistenciaItemModel> Registros { get; set; } = new();
     }
 
+    public class EstudianteAsistenciaResponseModel
+    {
+        public int ConsecutivoUsuario { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public int? ConsecutivoAsistencia { get; set; }
+        public string? Estado { get; set; }
+        public string? Observacion { get; set; }
+    }
+
     public class AsistenciaResponseModel
     {
         public int ConsecutivoAsistencia { get; set; }

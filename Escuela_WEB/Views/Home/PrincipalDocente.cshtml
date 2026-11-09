@@ -10,7 +10,7 @@
         @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Mis asignaturas", Valor = Model.TotalMaterias.ToString(), Icono = "bi-journal-bookmark", Color = "azul", Pie = "Asignaturas activas" })
     </div>
     <div class="col-sm-6 col-xl-3">
-        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Estudiantes a cargo", Valor = Model.TotalEstudiantes.ToString(), Icono = "bi-people", Color = "morado", Pie = "En sus secciones" })
+        @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Estudiantes a cargo", Valor = Model.TotalEstudiantes.ToString(), Icono = "bi-people", Color = "morado", Pie = "De las secciones donde dicta clases" })
     </div>
     <div class="col-sm-6 col-xl-3">
         @await Html.PartialAsync("_TarjetaStat", new TarjetaStatModel { Etiqueta = "Promedio del grupo", Valor = Model.PromedioGrupo.ToString("0.#"), Icono = "bi-graph-up-arrow", Color = "verde", Pie = "Todas sus asignaturas" })
@@ -55,7 +55,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Registrar calificaciones", Descripcion = "Ingrese notas por estudiante o impórtelas desde un archivo CSV.", Icono = "bi-journal-check", Controlador = "Historial" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Control de asistencia", Descripcion = "Marque la asistencia del día por asignatura.", Icono = "bi-clipboard2-check", Controlador = "Asistencia" })</div>
-                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Publicar un aviso", Descripcion = "Comunique información a su sección o a toda la escuela.", Icono = "bi-megaphone", Controlador = "Aviso", Accion = "Publicar" })</div>
+                    <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Publicar un aviso", Descripcion = "Comunique información a las secciones donde dicta clases.", Icono = "bi-megaphone", Controlador = "Aviso", Accion = "Publicar" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Mensajería", Descripcion = "Converse con sus estudiantes y con la dirección.", Icono = "bi-chat-dots", Controlador = "Mensaje", Accion = "Chat" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Mis asignaturas", Descripcion = "Consulte y administre las asignaturas a su cargo.", Icono = "bi-journal-bookmark", Controlador = "Materia" })</div>
                     <div class="col-md-6">@await Html.PartialAsync("_Tile", new TileModel { Titulo = "Horario de clases", Descripcion = "Revise o ajuste los bloques de su horario semanal.", Icono = "bi-calendar3", Controlador = "Horario" })</div>

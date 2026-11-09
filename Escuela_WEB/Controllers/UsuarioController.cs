@@ -8,32 +8,55 @@ namespace Escuela_WEB.Controllers
 {
     public class UsuarioController(ApiClienteService _api) : Controller
     {
+        // Las secciones que se ofrecen al registrarse salen de la tabla Seccion (catálogo
+        // que mantiene el Director en Administración > Secciones), no de texto libre.
+        private async Task CargarSecciones()
+        {
+            var (exito, secciones, _) = await _api.GetAsync<List<string>>("api/Seccion/ConsultarPublicasAPI");
+            ViewBag.Secciones = exito && secciones != null ? secciones : new List<string>();
+        }
+
         // GET /Usuario/Registro
         [HttpGet]
-        public IActionResult Registro() => View(new RegistroViewModel());
+        public async Task<IActionResult> Registro()
+        {
+            await CargarSecciones();
+            return View(new RegistroViewModel());
+        }
 
         // POST /Usuario/Registro
         [HttpPost]
         public async Task<IActionResult> Registro(RegistroViewModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+            {
+                await CargarSecciones();
+                return View(model);
+            }
 
-            var (exito, _, error) = await _api.PostAsync<JsonElement>("api/Usuario/RegistrarUsuarioAPI", new
+            var (exito, datos, error) = await _api.PostAsync<JsonElement>("api/Usuario/RegistrarUsuarioAPI", new
             {
                 Nombre = model.Nombre,
                 CorreoElectronico = model.CorreoElectronico,
                 Contrasenna = model.Contrasenna,
                 Rol = model.Rol,
-                Seccion = model.Seccion
+                Seccion = model.Rol == "Estudiante" ? model.Seccion : null
             });
 
             if (!exito)
             {
                 ModelState.AddModelError(string.Empty, error ?? "No fue posible crear la cuenta.");
+                await CargarSecciones();
                 return View(model);
             }
 
-            TempData["Mensaje"] = "Cuenta creada correctamente. Ahora puede iniciar sesión.";
+            var pendiente = datos.ValueKind == JsonValueKind.Object
+                            && datos.TryGetProperty("pendiente", out var p) && p.ValueKind == JsonValueKind.True;
+
+            TempData["Mensaje"] = pendiente
+                ? "Solicitud enviada. La dirección debe aprobar su cuenta de docente; cuando lo haga podrá iniciar sesión."
+                : "Cuenta creada correctamente. Ahora puede iniciar sesión.";
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -58,14 +81,11 @@ namespace Escuela_WEB.Controllers
                 return View(model);
             }
 
-            ViewBag.Mensaje = datos.GetProperty("mensaje").GetString();
+            ViewBag.Mensaje = datos.ValueKind == JsonValueKind.Object && datos.TryGetProperty("mensaje", out var m)
+                ? m.GetString()
+                : "Solicitud recibida.";
 
-            if (datos.TryGetProperty("contrasennaTemporal", out var temporal))
-            {
-                ViewBag.ContrasennaTemporal = temporal.GetString();
-            }
-
-            return View(model);
+            return View(new RecuperarAccesoViewModel());
         }
 
         // GET /Usuario/Configuracion
@@ -85,6 +105,7 @@ namespace Escuela_WEB.Controllers
             {
                 Nombre = perfil.GetProperty("nombre").GetString() ?? string.Empty,
                 CorreoElectronico = perfil.GetProperty("correoElectronico").GetString() ?? string.Empty,
+                Rol = perfil.GetProperty("rol").GetString() ?? string.Empty,
                 Seccion = perfil.TryGetProperty("seccion", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString() : null
             };
 
@@ -96,12 +117,16 @@ namespace Escuela_WEB.Controllers
         [HttpPost]
         public async Task<IActionResult> Configuracion(ConfiguracionViewModel model)
         {
+            // Los campos de solo lectura no viajan en el formulario: se rellenan desde la sesión.
+            model.CorreoElectronico = HttpContext.Session.GetString("Correo") ?? string.Empty;
+            model.Rol = HttpContext.Session.GetString("Rol") ?? string.Empty;
+            model.Seccion = HttpContext.Session.GetString("Seccion");
+
             if (!ModelState.IsValid) return View(model);
 
             var (exitoPerfil, _, errorPerfil) = await _api.PutAsync<JsonElement>("api/Usuario/ActualizarPerfilAPI", new
             {
-                Nombre = model.Nombre,
-                Seccion = model.Seccion
+                Nombre = model.Nombre
             });
 
             if (!exitoPerfil)
@@ -114,21 +139,18 @@ namespace Escuela_WEB.Controllers
             {
                 var (exitoClave, _, errorClave) = await _api.PutAsync<JsonElement>("api/Usuario/CambiarContrasennaAPI", new
                 {
+                    ContrasennaActual = model.ContrasennaActual,
                     ContrasennaNueva = model.ContrasennaNueva
                 });
 
                 if (!exitoClave)
                 {
-                    ModelState.AddModelError(string.Empty, errorClave ?? "No fue posible actualizar la contraseña.");
+                    ModelState.AddModelError(nameof(model.ContrasennaActual), errorClave ?? "No fue posible actualizar la contraseña.");
                     return View(model);
                 }
             }
 
-            HttpContext.Session.SetString("Nombre", model.Nombre);
-            if (!string.IsNullOrEmpty(model.Seccion))
-            {
-                HttpContext.Session.SetString("Seccion", model.Seccion);
-            }
+            HttpContext.Session.SetString("Nombre", model.Nombre.Trim());
 
             TempData["Mensaje"] = "Perfil actualizado correctamente.";
             return RedirectToAction("Configuracion");

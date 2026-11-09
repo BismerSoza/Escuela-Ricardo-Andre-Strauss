@@ -1,59 +1,176 @@
-@model List<HorarioViewModel>
+@model PanelHorarioViewModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Horario de Clases";
-    var dias = (string[])ViewBag.Dias;
-    var puedeGestionar = (bool)ViewBag.PuedeGestionar;
+    var dias = new[] { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes" };
+    var esEstudiante = Model.Rol == "Estudiante";
+
+    // ---- Escala del calendario: 66 px por hora; el rango se ajusta a los bloques (mínimo 07:00 a 15:00) ----
+    const int pxHora = 66;
+    int ATotalMinutos(string h) => int.Parse(h.Substring(0, 2)) * 60 + int.Parse(h.Substring(3, 2));
+    int Px(int minutos) => (int)Math.Round(minutos * pxHora / 60.0);
+
+    var inicioRango = 7 * 60;
+    var finRango = 15 * 60;
+    if (Model.Bloques.Any())
+    {
+        inicioRango = Math.Min(inicioRango, ATotalMinutos(Model.Bloques.Min(b => b.HoraInicio)) / 60 * 60);
+        finRango = Math.Max(finRango, (ATotalMinutos(Model.Bloques.Max(b => b.HoraFin)) + 59) / 60 * 60);
+    }
+    var alto = Px(finRango - inicioRango);
+
+    // Color estable por asignatura (no se usa GetHashCode porque cambia en cada ejecución).
+    int Color(string nombre) => nombre.Sum(c => (int)c) % 8;
+
+    var hoy = DateTime.Now.DayOfWeek switch
+    {
+        DayOfWeek.Monday => "Lunes", DayOfWeek.Tuesday => "Martes", DayOfWeek.Wednesday => "Miércoles",
+        DayOfWeek.Thursday => "Jueves", DayOfWeek.Friday => "Viernes", _ => ""
+    };
+
+    bool PuedeEliminar(HorarioViewModel b) => Model.Rol == "Director" || (Model.Rol == "Docente" && b.ConsecutivoDocente == Model.ConsecutivoUsuario);
+
+    // Qué mostrar en el bloque según lo que se está mirando (para no repetir lo que ya es obvio).
+    string Detalle(HorarioViewModel b)
+    {
+        var partes = new List<string>();
+        if (Model.Tipo != "aula" && !string.IsNullOrEmpty(b.Aula)) partes.Add(b.Aula);
+        if (Model.Tipo != "seccion" && !esEstudiante) partes.Add(b.Seccion);
+        if (Model.Tipo != "docente" && Model.Tipo != "mio") partes.Add(b.Docente);
+        return string.Join(" · ", partes);
+    }
+
+    var titulo = esEstudiante ? "Horario de mi sección" : Model.Tipo switch
+    {
+        "mio" => "Mi horario",
+        "seccion" => "Sección: " + Model.Valor,
+        "aula" => "Aula: " + Model.Valor,
+        "docente" => "Docente: " + (Model.Docentes.FirstOrDefault(d => d.ConsecutivoUsuario.ToString() == Model.Valor)?.Nombre ?? ""),
+        _ => "Horario"
+    };
 }
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h3 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Horario de Clases</h3>
-    @if (puedeGestionar)
+    @if (Model.PuedeGestionar)
     {
         <a asp-controller="Horario" asp-action="Registrar" class="btn btn-principal"><i class="bi bi-plus-lg"></i> Agregar bloque</a>
     }
 </div>
 
-@if (Model == null || !Model.Any())
+@if (!esEstudiante)
 {
-    <p class="text-muted mt-3">No hay bloques de horario registrados aún.</p>
+    <form method="get" asp-controller="Horario" asp-action="Index" id="formVista" class="row g-2 align-items-end my-3">
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label small mb-1">Ver horario</label>
+            <select name="tipo" id="selTipo" class="form-select">
+                @if (Model.Rol == "Docente") { <option value="mio" selected="@(Model.Tipo == "mio")">Mi horario</option> }
+                <option value="seccion" selected="@(Model.Tipo == "seccion")">Por sección</option>
+                <option value="aula" selected="@(Model.Tipo == "aula")">Por aula</option>
+                @if (Model.Rol == "Director") { <option value="docente" selected="@(Model.Tipo == "docente")">Por docente</option> }
+            </select>
+        </div>
+        <div class="col-sm-5 col-md-4">
+            <select name="valor" class="form-select sel-valor" data-tipo="seccion">
+                @foreach (var s in Model.Secciones) { <option value="@s" selected="@(Model.Tipo == "seccion" && Model.Valor == s)">@s</option> }
+            </select>
+            <select name="valor" class="form-select sel-valor" data-tipo="aula">
+                @foreach (var a in Model.Aulas) { <option value="@a.Nombre" selected="@(Model.Tipo == "aula" && Model.Valor == a.Nombre)">@a.Nombre</option> }
+            </select>
+            <select name="valor" class="form-select sel-valor" data-tipo="docente">
+                @foreach (var d in Model.Docentes) { <option value="@d.ConsecutivoUsuario" selected="@(Model.Tipo == "docente" && Model.Valor == d.ConsecutivoUsuario.ToString())">@d.Nombre</option> }
+            </select>
+        </div>
+    </form>
 }
 else
 {
-    <div class="row g-3 mt-1">
-        @foreach (var dia in dias)
-        {
-            var bloques = Model.Where(h => h.DiaSemana == dia).OrderBy(h => h.HoraInicio).ToList();
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header fw-semibold">@dia</div>
-                    <div class="list-group list-group-flush">
-                        @if (!bloques.Any())
-                        {
-                            <div class="list-group-item text-muted small">Sin clases</div>
-                        }
-                        else
-                        {
-                            foreach (var b in bloques)
-                            {
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between">
-                                        <strong>@b.Materia</strong>
-                                        <span class="text-muted small">@b.HoraInicio - @b.HoraFin</span>
-                                    </div>
-                                    <div class="text-muted small">@(b.Aula ?? "Sin aula asignada")</div>
-                                    @if (puedeGestionar)
-                                    {
-                                        <form asp-controller="Horario" asp-action="Eliminar" method="post" class="mt-1" onsubmit="return confirm('¿Eliminar este bloque?');">
-                                            <input type="hidden" name="id" value="@b.ConsecutivoHorario" />
-                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">Eliminar</button>
-                                        </form>
-                                    }
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
+    <p class="text-muted mt-2">Estas son las clases de su sección durante la semana.</p>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">@titulo</h5>
+    <span class="text-muted small">@Model.Bloques.Count bloque(s)</span>
+</div>
+
+<div class="cal-wrap">
+    <div class="cal">
+        <div class="cal-head">
+            <div></div>
+            @foreach (var d in dias)
+            {
+                <div class="@(d == hoy ? "cal-hoy" : "")">@d</div>
+            }
+        </div>
+        <div class="cal-body" style="--ph:@(pxHora)px; height:@(alto)px;">
+            <div class="cal-horas">
+                @for (var h = inicioRango; h <= finRango; h += 60)
+                {
+                    var top = Px(h - inicioRango);
+                    <div class="cal-hora @(h == inicioRango ? "primera" : "")" style="top:@(top)px;">@((h / 60).ToString("00")):00</div>
+                }
             </div>
+            @foreach (var d in dias)
+            {
+                <div class="cal-col @(d == hoy ? "cal-hoy" : "")">
+                    @foreach (var b in Model.Bloques.Where(x => x.DiaSemana == d))
+                    {
+                        var ini = ATotalMinutos(b.HoraInicio);
+                        var fin = ATotalMinutos(b.HoraFin);
+                        var top = Px(ini - inicioRango);
+                        var altoBloque = Math.Max(Px(fin - ini) - 2, 22);
+                        <div class="cal-bloque cal-c@(Color(b.Materia))" style="top:@(top)px; height:@(altoBloque)px;"
+                             title="@b.Materia · @b.HoraInicio - @b.HoraFin · @b.Aula · @b.Seccion · @b.Docente">
+                            <strong>@b.Materia</strong>
+                            @if (altoBloque >= 36) { <div class="t">@b.HoraInicio – @b.HoraFin</div> }
+                            @if (altoBloque >= 52) { <div class="m">@Detalle(b)</div> }
+                            @if (PuedeEliminar(b))
+                            {
+                                <form asp-controller="Horario" asp-action="Eliminar" method="post" onsubmit="return confirm('¿Eliminar este bloque del horario?');">
+                                    <input type="hidden" name="id" value="@b.ConsecutivoHorario" />
+                                    <input type="hidden" name="tipo" value="@Model.Tipo" />
+                                    <input type="hidden" name="valor" value="@Model.Valor" />
+                                    <button type="submit" aria-label="Eliminar bloque"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        @if (!Model.Bloques.Any())
+        {
+            <div class="cal-vacio border-top"><i class="bi bi-calendar-x fs-2 d-block mb-1"></i>No hay clases registradas para esta vista.</div>
         }
     </div>
+</div>
+
+@if (Model.Bloques.Any())
+{
+    <div class="cal-leyenda">
+        @foreach (var m in Model.Bloques.Select(b => b.Materia).Distinct().OrderBy(x => x))
+        {
+            <span class="cal-c@(Color(m))">@m</span>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const selTipo = document.getElementById('selTipo');
+        if (selTipo) {
+            const formulario = document.getElementById('formVista');
+            // Solo el selector que corresponde al tipo elegido está visible y se envía.
+            function sincronizar() {
+                document.querySelectorAll('.sel-valor').forEach(s => {
+                    const activo = s.dataset.tipo === selTipo.value;
+                    s.classList.toggle('d-none', !activo);
+                    s.disabled = !activo;
+                });
+            }
+            sincronizar();
+            selTipo.addEventListener('change', () => { sincronizar(); formulario.submit(); });
+            document.querySelectorAll('.sel-valor').forEach(s => s.addEventListener('change', () => formulario.submit()));
+        }
+    </script>
 }

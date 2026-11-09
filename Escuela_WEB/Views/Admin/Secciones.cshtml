@@ -1,13 +1,20 @@
-@model List<string>
+@model List<SeccionAdminViewModel>
 @{
     ViewData["Title"] = "Secciones";
-    var materias = ViewBag.Materias as List<MateriaViewModel>;
+    var materias = ViewBag.Materias as List<MateriaViewModel> ?? new List<MateriaViewModel>();
 }
 
-<h3><i class="bi bi-diagram-3 me-2"></i>Secciones registradas</h3>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+    <h3 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Secciones (grados)</h3>
+    <form asp-controller="Admin" asp-action="RegistrarSeccion" method="post" class="d-flex gap-2">
+        <input type="text" name="nombre" class="form-control" placeholder="Ej: Tercer Grado" maxlength="80" required />
+        <button type="submit" class="btn btn-principal text-nowrap"><i class="bi bi-plus-lg"></i> Nueva sección</button>
+    </form>
+</div>
+<p class="text-muted">Estas son las secciones que se ofrecen al crear cuentas de estudiantes, asignaturas y avisos. Una sección desactivada deja de ofrecerse, pero conserva sus datos.</p>
 
 <div class="row g-3 mt-1">
-    @if (Model == null || !Model.Any())
+    @if (!Model.Any())
     {
         <p class="text-muted">No hay secciones registradas aún.</p>
     }
@@ -15,15 +22,18 @@
     {
         foreach (var seccion in Model)
         {
-            var materiasDeSeccion = materias?.Where(m => m.Seccion == seccion).ToList() ?? new List<MateriaViewModel>();
+            var materiasDeSeccion = materias.Where(m => m.Seccion == seccion.Nombre && m.Activa).ToList();
             <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header fw-semibold"><i class="bi bi-people me-1"></i>@seccion</div>
+                <div class="card h-100 @(seccion.Activa ? "" : "opacity-75")">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold"><i class="bi bi-people me-1"></i>@seccion.Nombre</span>
+                        @if (!seccion.Activa) { <span class="badge bg-secondary">Inactiva</span> }
+                    </div>
                     <div class="card-body">
-                        <p class="text-muted small mb-2">Asignaturas activas:</p>
+                        <p class="mb-2 small text-muted"><strong>@seccion.TotalEstudiantes</strong> estudiante(s) · <strong>@seccion.TotalMaterias</strong> asignatura(s)</p>
                         @if (!materiasDeSeccion.Any())
                         {
-                            <p class="text-muted small">Sin asignaturas registradas.</p>
+                            <p class="text-muted small">Sin asignaturas activas.</p>
                         }
                         else
                         {
@@ -33,6 +43,21 @@
                                     <li><i class="bi bi-journal-bookmark me-1"></i>@m.Nombre <span class="text-muted small">— @m.Docente</span></li>
                                 }
                             </ul>
+                        }
+                    </div>
+                    <div class="card-footer bg-white">
+                        @if (seccion.Activa)
+                        {
+                            <form asp-controller="Admin" asp-action="DesactivarSeccion" asp-route-id="@seccion.ConsecutivoSeccion" method="post"
+                                  onsubmit="return confirm('¿Desactivar esta sección? Dejará de ofrecerse en los formularios.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-controller="Admin" asp-action="ActivarSeccion" asp-route-id="@seccion.ConsecutivoSeccion" method="post">
+                                <button type="submit" class="btn btn-sm btn-success">Activar</button>
+                            </form>
                         }
                     </div>
                 </div>

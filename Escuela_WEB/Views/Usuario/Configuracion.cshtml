@@ -5,7 +5,7 @@
 
 <h3>Configuración de mi perfil</h3>
 
-<div class="card" style="max-width:500px;">
+<div class="card" style="max-width:520px;">
     <div class="card-body">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -19,14 +19,39 @@
                 <label asp-for="CorreoElectronico" class="form-label"></label>
                 <input asp-for="CorreoElectronico" class="form-control" disabled />
             </div>
-            <div class="mb-3">
-                <label asp-for="Seccion" class="form-label"></label>
-                <input asp-for="Seccion" class="form-control" />
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="Rol" class="form-label"></label>
+                    <input asp-for="Rol" class="form-control" disabled />
+                </div>
+                @if (Model.Rol == "Estudiante")
+                {
+                    <div class="col-sm-6 mb-3">
+                        <label asp-for="Seccion" class="form-label"></label>
+                        <input asp-for="Seccion" class="form-control" disabled />
+                    </div>
+                }
             </div>
+            <div class="form-text mb-3">El correo, el rol y la sección los administra la dirección de la escuela.</div>
+
+            <hr />
+            <h6>Cambiar contraseña <span class="text-muted fw-normal small">(opcional)</span></h6>
             <div class="mb-3">
-                <label asp-for="ContrasennaNueva" class="form-label"></label>
-                <input asp-for="ContrasennaNueva" class="form-control" placeholder="Dejar en blanco para no cambiar" />
-                <span asp-validation-for="ContrasennaNueva" class="text-danger"></span>
+                <label asp-for="ContrasennaActual" class="form-label"></label>
+                <input asp-for="ContrasennaActual" type="password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="ContrasennaActual" class="text-danger"></span>
+            </div>
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="ContrasennaNueva" class="form-label"></label>
+                    <input asp-for="ContrasennaNueva" type="password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="ContrasennaNueva" class="text-danger"></span>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="ConfirmarContrasenna" class="form-label"></label>
+                    <input asp-for="ConfirmarContrasenna" type="password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="ConfirmarContrasenna" class="text-danger"></span>
+                </div>
             </div>
             <button type="submit" class="btn btn-principal">Guardar cambios</button>
         </form>

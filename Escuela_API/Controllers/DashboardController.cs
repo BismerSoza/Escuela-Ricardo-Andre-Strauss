@@ -52,8 +52,9 @@ namespace Escuela_API.Controllers
 
             var asistencia = context.Query<string>(
                 "SELECT Estado FROM Asistencia WHERE ConsecutivoEstudiante = @Id", new { Id = id }).ToList();
+            // Misma fórmula que la pantalla de Asistencia: Presente = 1, Tardía = 0.5.
             var porcentajeAsistencia = asistencia.Count == 0 ? 100 :
-                Math.Round(asistencia.Count(e => e == "Presente" || e == "Tardía") / (double)asistencia.Count * 100, 1);
+                Math.Round((asistencia.Count(e => e == "Presente") + asistencia.Count(e => e == "Tardía") * 0.5) / asistencia.Count * 100, 1);
 
             var ultimasCalificaciones = context.Query<HistorialResponseModel>(@"
                 SELECT TOP 5 h.ConsecutivoHistorial, h.Materia, h.Periodo, h.Nota, h.Observacion, h.FechaCreacion,
@@ -86,7 +87,7 @@ namespace Escuela_API.Controllers
             var totalEstudiantes = context.QueryFirstOrDefault<int>(@"
                 SELECT COUNT(DISTINCT u.ConsecutivoUsuario) FROM Usuario u
                 INNER JOIN Materia m ON m.Seccion = u.Seccion
-                WHERE u.Rol = 'Estudiante' AND m.ConsecutivoDocente = @Id", new { Id = id });
+                WHERE u.Rol = 'Estudiante' AND u.Activo = 1 AND m.Activa = 1 AND m.ConsecutivoDocente = @Id", new { Id = id });
 
             var promedios = context.Query<ParPromedio>(@"
                 SELECT Materia AS Etiqueta, AVG(CAST(Nota AS FLOAT)) AS Promedio FROM HistorialAcademico
@@ -125,6 +126,9 @@ namespace Escuela_API.Controllers
             var avisosRecientes = context.QueryFirstOrDefault<int>(
                 "SELECT COUNT(*) FROM Aviso WHERE FechaCreacion >= DATEADD(day, -30, GETDATE())");
 
+            var pendientes = context.QueryFirstOrDefault<int>("SELECT COUNT(*) FROM Usuario WHERE Pendiente = 1 AND Activo = 0");
+            var clavesSolicitadas = context.QueryFirstOrDefault<int>("SELECT COUNT(*) FROM Usuario WHERE ClaveSolicitada IS NOT NULL AND Activo = 1");
+
             return new DashboardDirectorResponseModel
             {
                 TotalUsuarios = totalUsuarios,
@@ -133,6 +137,8 @@ namespace Escuela_API.Controllers
                 TotalMaterias = totalMaterias,
                 PromedioInstitucional = promedios.Count > 0 ? Math.Round(promedios.Average(p => p.Promedio), 1) : 0,
                 AvisosRecientes = avisosRecientes,
+                UsuariosPendientes = pendientes,
+                ClavesSolicitadas = clavesSolicitadas,
                 Secciones = promedios.Select(p => p.Etiqueta).ToList(),
                 PromediosPorSeccion = promedios.Select(p => Math.Round(p.Promedio, 1)).ToList()
             };

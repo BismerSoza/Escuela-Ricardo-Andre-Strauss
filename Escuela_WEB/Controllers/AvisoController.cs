@@ -29,29 +29,53 @@ namespace Escuela_WEB.Controllers
             return View(avisos);
         }
 
+        // Secciones a las que puede dirigir un aviso: el Director todas; el Docente solo donde dicta clases.
+        private async Task CargarSecciones()
+        {
+            ViewBag.EsDirector = HttpContext.Session.GetString("Rol") == "Director";
+            var (exito, secciones, _) = await _api.GetAsync<List<string>>("api/Seccion/ConsultarMisSeccionesAPI");
+            ViewBag.Secciones = exito && secciones != null ? secciones : new List<string>();
+        }
+
         // GET /Aviso/Publicar  (Director o Docente)
         [SessionRol("Director", "Docente")]
         [HttpGet]
-        public IActionResult Publicar() => View(new RegistrarAvisoViewModel());
+        public async Task<IActionResult> Publicar()
+        {
+            await CargarSecciones();
+            return View(new RegistrarAvisoViewModel());
+        }
 
         // POST /Aviso/Publicar
         [SessionRol("Director", "Docente")]
         [HttpPost]
         public async Task<IActionResult> Publicar(RegistrarAvisoViewModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            var esDirector = HttpContext.Session.GetString("Rol") == "Director";
+
+            if (!esDirector && string.IsNullOrWhiteSpace(model.Seccion))
+            {
+                ModelState.AddModelError(nameof(model.Seccion), "Seleccione la sección a la que va dirigido el aviso.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await CargarSecciones();
+                return View(model);
+            }
 
             var (exito, _, error) = await _api.PostAsync<JsonElement>("api/Aviso/RegistrarAvisoAPI", new
             {
                 Titulo = model.Titulo,
                 Contenido = model.Contenido,
                 Prioridad = model.Prioridad,
-                Seccion = model.Seccion
+                Seccion = string.IsNullOrWhiteSpace(model.Seccion) ? null : model.Seccion
             });
 
             if (!exito)
             {
                 ModelState.AddModelError(string.Empty, error ?? "No fue posible publicar el aviso.");
+                await CargarSecciones();
                 return View(model);
             }
 

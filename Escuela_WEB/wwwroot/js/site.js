@@ -35,7 +35,8 @@ async function cargarNotificaciones() {
     if (!badge || !lista) return;
 
     try {
-        const respuesta = await fetch('/Home/Notificaciones', { headers: { 'Accept': 'application/json' } });
+        const respuesta = await fetch('/Home/Notificaciones', { headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' } });
+        if (respuesta.status === 401) { window.location.href = '/?expirada=1'; return; }
         if (!respuesta.ok) return;
         const datos = await respuesta.json();
 
@@ -76,7 +77,7 @@ function mostrarAlertaGlobal(mensaje, tipo = 'danger') {
     const id = 'alerta_' + Date.now();
     contenedor.insertAdjacentHTML('beforeend', `
         <div id="${id}" class="alert alert-${tipo} alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle me-1"></i>${mensaje}
+            <i class="bi bi-exclamation-triangle me-1"></i>${escaparHtml(mensaje)}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>`);
     setTimeout(() => document.getElementById(id)?.remove(), 8000);
@@ -85,7 +86,15 @@ function mostrarAlertaGlobal(mensaje, tipo = 'danger') {
 // fetch con manejo de errores: si falla, avisa al usuario en vez de dejar la pantalla muerta
 async function fetchSeguro(url, opciones = {}) {
     try {
+        opciones.headers = Object.assign({ 'X-Requested-With': 'fetch' }, opciones.headers || {});
         const respuesta = await fetch(url, opciones);
+
+        // Sesión vencida o cuenta desactivada por la dirección: volver al inicio de sesión.
+        if (respuesta.status === 401) {
+            window.location.href = '/?expirada=1';
+            return respuesta;
+        }
+
         if (!respuesta.ok) {
             let mensaje = 'Ocurrió un error al procesar la solicitud.';
             try {

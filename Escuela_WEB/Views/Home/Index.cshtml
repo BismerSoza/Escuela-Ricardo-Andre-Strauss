@@ -5,85 +5,78 @@
     var hayErrorGeneral = ViewData.ModelState.TryGetValue(string.Empty, out var estadoGeneral) && estadoGeneral!.Errors.Count > 0;
 }
 
-<div class="login-shell">
-    <section class="login-hero d-none d-lg-flex">
-        <div>
-            <i class="bi bi-mortarboard-fill hero-logo"></i>
-            <h1>MiniCampus</h1>
-            <p>Plataforma académica de la Escuela Ricardo André Strauss. Un solo lugar para la información académica y la comunicación entre docentes, estudiantes y dirección.</p>
-            <ul class="login-features">
-                <li><i class="bi bi-check2-circle"></i> Consulta de calificaciones e historial académico</li>
-                <li><i class="bi bi-check2-circle"></i> Control de asistencia y horario de clases</li>
-                <li><i class="bi bi-check2-circle"></i> Avisos institucionales y mensajería interna</li>
-            </ul>
-        </div>
-        <small class="text-white-50">Cartago, Costa Rica · Curso lectivo 2026</small>
-    </section>
+<div class="login-card">
+    <h2>Iniciar sesión</h2>
+    <p class="sub">Ingrese con su correo institucional.</p>
 
-    <section class="login-panel">
-        <div class="login-box">
-            <h2>Iniciar sesión</h2>
-            <p class="text-muted mb-3">Ingrese con su correo institucional.</p>
+    @if (ViewBag.Aviso != null)
+    {
+        <div class="alert alert-warning py-2"><i class="bi bi-info-circle me-1"></i>@ViewBag.Aviso</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]</div>
+    }
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i>@TempData["Mensaje"]</div>
+    }
+    @if (hayErrorGeneral)
+    {
+        <div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>@estadoGeneral!.Errors.First().ErrorMessage</div>
+    }
 
-            @if (TempData["Error"] != null)
-            {
-                <div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]</div>
-            }
-            @if (TempData["Mensaje"] != null)
-            {
-                <div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i>@TempData["Mensaje"]</div>
-            }
-            @if (hayErrorGeneral)
-            {
-                <div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>@estadoGeneral!.Errors.First().ErrorMessage</div>
-            }
-
-            <form asp-controller="Home" asp-action="Index" method="post" novalidate>
-                <div class="mb-3">
-                    <label asp-for="CorreoElectronico" class="form-label"></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input asp-for="CorreoElectronico" class="form-control" placeholder="nombre@escuela.cr" autocomplete="username" />
-                    </div>
-                    <span asp-validation-for="CorreoElectronico" class="text-danger small"></span>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="Contrasenna" class="form-label"></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input asp-for="Contrasenna" type="password" class="form-control" id="campoClave" autocomplete="current-password" />
-                        <button class="btn btn-outline-secondary" type="button" id="verClave" tabindex="-1" aria-label="Mostrar contraseña"><i class="bi bi-eye"></i></button>
-                    </div>
-                    <span asp-validation-for="Contrasenna" class="text-danger small"></span>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 py-2">Ingresar</button>
-            </form>
-
-            <div class="d-flex justify-content-between mt-3 small">
-                <a asp-controller="Usuario" asp-action="RecuperarAcceso">¿Olvidó su contraseña?</a>
-                <a asp-controller="Usuario" asp-action="Registro">Crear cuenta</a>
+    <form asp-controller="Home" asp-action="Index" method="post" novalidate>
+        <div class="mb-3">
+            <label asp-for="CorreoElectronico" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input asp-for="CorreoElectronico" class="form-control" placeholder="nombre@escuela.cr" autocomplete="username" id="campoCorreo" />
             </div>
-
-            <details class="demo">
-                <summary>Cuentas de demostración</summary>
-                <div class="mt-2">
-                    Director: director@escuela.cr / director123<br />
-                    Docente: docente@escuela.cr / docente123<br />
-                    Estudiante: estudiante1@escuela.cr / estudiante123
-                </div>
-            </details>
+            <span asp-validation-for="CorreoElectronico" class="text-danger small"></span>
         </div>
-    </section>
+        <div class="mb-3">
+            <label asp-for="Contrasenna" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                <input asp-for="Contrasenna" type="password" class="form-control" id="campoClave" autocomplete="current-password" />
+                <button class="btn btn-outline-secondary" type="button" id="verClave" tabindex="-1" aria-label="Mostrar contraseña"><i class="bi bi-eye"></i></button>
+            </div>
+            <span asp-validation-for="Contrasenna" class="text-danger small"></span>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2">Ingresar</button>
+    </form>
+
+    <div class="d-flex justify-content-between mt-3 small">
+        <a asp-controller="Usuario" asp-action="RecuperarAcceso">¿Olvidó su contraseña?</a>
+        <a asp-controller="Usuario" asp-action="Registro">Crear cuenta</a>
+    </div>
+
+    <details class="demo">
+        <summary>Cuentas de demostración</summary>
+        <div class="demo-cuentas">
+            <button type="button" data-correo="director@escuela.cr" data-clave="director123"><i class="bi bi-person-badge"></i> Director</button>
+            <button type="button" data-correo="docente@escuela.cr" data-clave="docente123"><i class="bi bi-person-workspace"></i> Docente</button>
+            <button type="button" data-correo="estudiante1@escuela.cr" data-clave="estudiante123"><i class="bi bi-mortarboard"></i> Estudiante</button>
+        </div>
+    </details>
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
     <script>
         document.getElementById('verClave').addEventListener('click', function () {
             const campo = document.getElementById('campoClave');
             const visible = campo.type === 'text';
             campo.type = visible ? 'password' : 'text';
             this.innerHTML = visible ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+
+        // Las cuentas de demostración rellenan el formulario con un clic.
+        document.querySelectorAll('.demo-cuentas button').forEach(function (b) {
+            b.addEventListener('click', function () {
+                document.getElementById('campoCorreo').value = b.dataset.correo;
+                document.getElementById('campoClave').value = b.dataset.clave;
+            });
         });
     </script>
 }

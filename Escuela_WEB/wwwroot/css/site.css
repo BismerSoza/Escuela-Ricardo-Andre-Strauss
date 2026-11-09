@@ -204,33 +204,108 @@ a { color: #1d5aa6; }
 .mensaje-ajeno { background: #e9ecef; border-radius: 12px 12px 12px 0; padding: 8px 12px; max-width: 70%; margin-bottom: 8px; }
 .contenedor-chat { height: 420px; overflow-y: auto; background: #fff; border-radius: 8px; padding: 16px; border: 1px solid var(--borde); }
 .lista-contactos .list-group-item.activo { background: var(--navy); color: #fff; }
-.tarjeta-login { max-width: 460px; margin: 48px auto; }
 
-/* ---------- Páginas externas (registro, recuperar, error) ---------- */
-.fondo-externo { background: var(--bg); min-height: 100vh; }
-.externo-top { background: #fff; border-bottom: 1px solid var(--borde); padding: .8rem 1.5rem; display: flex; align-items: center; gap: .7rem; }
-.externo-top i { font-size: 1.6rem; color: var(--gold); }
-.externo-top strong { font-family: 'Merriweather', Georgia, serif; color: var(--navy-dark); }
-
-/* ---------- Login ---------- */
-.login-page { background: #fff; }
-.login-shell { display: flex; min-height: 100vh; }
-.login-hero {
-    flex: 1.1; background: linear-gradient(160deg, var(--navy-dark), var(--navy)); color: #fff;
-    flex-direction: column; justify-content: space-between; padding: 3rem 3.5rem; border-right: 6px solid var(--gold);
+/* ---------- Pantallas públicas: login, registro, recuperar, error ----------
+   Una sola composición centrada: marca arriba, tarjeta al medio, pie abajo.
+   Todo el fondo tiene el mismo tratamiento, así no quedan zonas vacías. */
+.login-page {
+    min-height: 100vh; color: #fff;
+    background:
+        radial-gradient(900px 480px at 12% -8%, rgba(184, 137, 43, .22), transparent 62%),
+        radial-gradient(700px 420px at 100% 100%, rgba(111, 143, 191, .22), transparent 60%),
+        linear-gradient(160deg, var(--navy-dark), var(--navy));
+    background-color: var(--navy-dark);
 }
-.login-hero h1 { color: #fff; font-size: 2.3rem; margin: .8rem 0 .5rem; }
-.login-hero p { color: #cbd7e9; max-width: 440px; }
-.login-hero .hero-logo { font-size: 3rem; color: var(--gold); }
-.login-features { list-style: none; padding: 0; margin: 1.8rem 0 0; }
-.login-features li { display: flex; gap: .6rem; align-items: center; margin-bottom: .7rem; color: #dbe5f3; }
-.login-features i { color: var(--gold); font-size: 1.1rem; }
-.login-panel { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1.25rem; background: var(--bg); }
-.login-box { width: 100%; max-width: 410px; background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 2rem 2rem 1.6rem; box-shadow: 0 6px 24px rgba(18,38,63,.07); }
-.login-box h2 { font-size: 1.45rem; margin-bottom: .2rem; }
+.login-wrap {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.4rem; padding: 2rem 1rem;
+}
+.login-brand { text-align: center; }
+.login-brand .logo {
+    width: 64px; height: 64px; border-radius: 16px; margin: 0 auto .8rem;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .18);
+}
+.login-brand .logo i { font-size: 2rem; color: var(--gold); }
+.login-brand h1 { color: #fff; font-size: 1.85rem; margin: 0; }
+.login-brand p { margin: .25rem 0 0; color: #b9c8de; font-size: .95rem; }
+.login-card {
+    width: 100%; max-width: 430px; background: #fff; color: var(--texto);
+    border-radius: 14px; padding: 2rem 2rem 1.6rem;
+    box-shadow: 0 24px 60px rgba(5, 14, 30, .42); border-top: 4px solid var(--gold);
+}
+.login-card.ancho { max-width: 560px; }
+.login-card h2 { font-size: 1.4rem; margin-bottom: .25rem; }
+.login-card .sub { color: var(--muted); margin-bottom: 1.2rem; }
+.login-foot { color: rgba(255, 255, 255, .55); font-size: .8rem; text-align: center; }
 .input-group-text { background: #f6f8fb; color: var(--navy); border-color: #ced4da; }
-details.demo { margin-top: 1.1rem; font-size: .82rem; color: var(--muted); }
+details.demo { margin-top: 1.1rem; font-size: .82rem; color: var(--muted); border-top: 1px dashed var(--borde); padding-top: .8rem; }
 details.demo summary { cursor: pointer; }
+.demo-cuentas { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+.demo-cuentas button {
+    border: 1px solid var(--borde); background: #f6f8fb; color: var(--navy); border-radius: 20px;
+    padding: .2rem .7rem; font-size: .78rem;
+}
+.demo-cuentas button:hover { background: var(--navy-soft); }
+
+/* Selector de rol en el registro */
+.rol-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.rol-opcion input { position: absolute; opacity: 0; pointer-events: none; }
+.rol-opcion label {
+    display: flex; flex-direction: column; align-items: center; gap: .15rem; text-align: center;
+    padding: .9rem .6rem; border: 2px solid var(--borde); border-radius: 10px; cursor: pointer; width: 100%;
+    color: var(--muted); transition: border-color .15s, background .15s;
+}
+.rol-opcion label i { font-size: 1.6rem; color: #8b9ab3; }
+.rol-opcion label strong { color: var(--navy-dark); }
+.rol-opcion label small { font-size: .75rem; line-height: 1.2; }
+.rol-opcion input:checked + label { border-color: var(--navy); background: var(--navy-soft); }
+.rol-opcion input:checked + label i { color: var(--navy); }
+.rol-opcion input:focus-visible + label { box-shadow: 0 0 0 .2rem rgba(27, 54, 93, .25); }
+
+/* ---------- Calendario semanal de horarios ---------- */
+.cal-wrap { background: #fff; border: 1px solid var(--borde); border-radius: 10px; overflow-x: auto; }
+.cal { min-width: 780px; padding-bottom: 12px; }
+.cal-head, .cal-body { display: grid; grid-template-columns: 62px repeat(5, minmax(0, 1fr)); }
+.cal-head { background: #f6f8fb; border-bottom: 1px solid var(--borde); }
+.cal-head > div {
+    padding: .65rem .4rem; text-align: center; font-weight: 700; font-size: .8rem; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--navy-dark);
+}
+.cal-head > div.cal-hoy { color: #fff; background: var(--navy); }
+.cal-horas { position: relative; }
+.cal-hora { position: absolute; right: 8px; transform: translateY(-50%); font-size: .72rem; color: var(--muted); background: #fff; padding: 0 2px; }
+.cal-hora.primera { transform: none; }
+.cal-col {
+    position: relative; border-left: 1px solid var(--borde);
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--ph) - 1px), #e9edf3 calc(var(--ph) - 1px), #e9edf3 var(--ph));
+}
+.cal-col.cal-hoy { background-color: #fbfcfe; }
+.cal-bloque {
+    position: absolute; left: 4px; right: 4px; border-radius: 7px; padding: .28rem .5rem;
+    overflow: hidden; font-size: .78rem; line-height: 1.22; border-left: 4px solid; box-shadow: 0 1px 3px rgba(18, 38, 63, .14);
+}
+.cal-bloque strong { display: block; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 14px; }
+.cal-bloque .t { font-weight: 600; opacity: .85; }
+.cal-bloque .m { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .85; }
+.cal-bloque form { position: absolute; top: 1px; right: 3px; margin: 0; }
+.cal-bloque form button { border: 0; background: transparent; color: inherit; opacity: .45; font-size: .95rem; line-height: 1; padding: 0 2px; }
+.cal-bloque form button:hover { opacity: 1; color: var(--rojo); }
+.cal-c0 { background: #dfe9f7; border-color: #2f5fa8; color: #17335c; }
+.cal-c1 { background: #dff1e7; border-color: #2f7d57; color: #174630; }
+.cal-c2 { background: #fdebd0; border-color: #c07a12; color: #5e3a05; }
+.cal-c3 { background: #e8e2f6; border-color: #5b4b9a; color: #2c2352; }
+.cal-c4 { background: #fadfdc; border-color: #b8403a; color: #62201c; }
+.cal-c5 { background: #d9f0f1; border-color: #22838a; color: #0f4448; }
+.cal-c6 { background: #f4e6d2; border-color: #8a5a2b; color: #46290e; }
+.cal-c7 { background: #e6ebd3; border-color: #6b8a2b; color: #34440f; }
+.cal-leyenda { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+.cal-leyenda span { font-size: .78rem; padding: .15rem .6rem; border-radius: 20px; border-left: 4px solid; }
+.cal-vacio { padding: 2.5rem 1rem; text-align: center; color: var(--muted); }
+.estado-disp { border-radius: 8px; padding: .65rem .85rem; font-size: .88rem; display: none; }
+.estado-disp.ok { display: block; background: #e3f3ea; color: #174630; border: 1px solid #b6dcc6; }
+.estado-disp.mal { display: block; background: #fbe6e4; color: #62201c; border: 1px solid #efc0bb; }
+.estado-disp ul { margin: .3rem 0 0; padding-left: 1.1rem; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 991.98px) {

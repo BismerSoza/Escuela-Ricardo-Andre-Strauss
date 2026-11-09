@@ -4,7 +4,6 @@ namespace Escuela_API.Models
     {
         public int ConsecutivoEstudiante { get; set; }
         public int? ConsecutivoMateria { get; set; }
-        public string Materia { get; set; } = string.Empty;
         public string Periodo { get; set; } = string.Empty;
         public decimal? Nota { get; set; }
         public string? Observacion { get; set; }
